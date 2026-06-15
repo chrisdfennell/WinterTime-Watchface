@@ -1,0 +1,37 @@
+<iq:manifest version="3" xmlns:iq="http://www.garmin.com/xml/connectiq">
+    <!--
+        Snowfall - a winter alpine watch face for the Garmin tactix 8.
+
+        The tactix 8 runs on the Fenix 8 (AMOLED) platform. There is no dedicated
+        "tactix8" product id in the Connect IQ SDK, so we target the Fenix 8 AMOLED
+        products that share the exact same hardware/firmware/resolution:
+            fenix847mm    -> 454x454 (51mm case)
+            fenix843mm    -> 416x416 (47mm case)
+            fenix8pro47mm -> 454x454 (Fenix 8 Pro, same panel)
+        The lower-resolution Fenix 8 Solar (MIP) variants are included too so the
+        face still installs on those watches; everything is laid out relative to the
+        screen size so it scales cleanly.
+
+        minApiLevel 4.0.0 guarantees vector fonts (3.4+) and the Body Battery
+        SensorHistory API (4.0+). All optional features are still guarded with
+        `has` checks at runtime so nothing crashes on a device that lacks them.
+    -->
+    <iq:application id="d353bcc4-f3de-4b13-93d8-6adb176564b6" type="watchface" name="@Strings.AppName" entry="SnowfallApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="4.0.0">
+        <iq:products>
+            <iq:product id="fenix847mm"/>
+            <iq:product id="fenix843mm"/>
+            <iq:product id="fenix8pro47mm"/>
+            <iq:product id="fenix8solar51mm"/>
+            <iq:product id="fenix8solar47mm"/>
+            <iq:product id="fr965"/>
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="SensorHistory"/>
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+        <iq:barrels>
+        </iq:barrels>
+    </iq:application>
+</iq:manifest>

@@ -1,0 +1,16 @@
+info face="exocet_time" size=82 bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=1,1 outline=0
+common lineHeight=96 base=78 scaleW=128 scaleH=512 pages=1 packed=0 alphaChnl=1 redChnl=4 greenChnl=4 blueChnl=4
+page id=0 file="exocet_time.png"
+chars count=11
+char id=48 x=2 y=2 width=49 height=60 xoffset=0 yoffset=19 xadvance=49 page=0 chnl=15
+char id=49 x=53 y=2 width=49 height=60 xoffset=0 yoffset=19 xadvance=49 page=0 chnl=15
+char id=50 x=2 y=64 width=49 height=59 xoffset=0 yoffset=19 xadvance=49 page=0 chnl=15
+char id=51 x=53 y=64 width=49 height=60 xoffset=0 yoffset=19 xadvance=49 page=0 chnl=15
+char id=52 x=2 y=126 width=49 height=60 xoffset=0 yoffset=19 xadvance=49 page=0 chnl=15
+char id=53 x=53 y=126 width=49 height=59 xoffset=0 yoffset=20 xadvance=49 page=0 chnl=15
+char id=54 x=2 y=188 width=49 height=60 xoffset=0 yoffset=19 xadvance=49 page=0 chnl=15
+char id=55 x=53 y=188 width=49 height=59 xoffset=0 yoffset=20 xadvance=49 page=0 chnl=15
+char id=56 x=2 y=250 width=49 height=60 xoffset=0 yoffset=19 xadvance=49 page=0 chnl=15
+char id=57 x=53 y=250 width=49 height=60 xoffset=0 yoffset=19 xadvance=49 page=0 chnl=15
+char id=58 x=2 y=312 width=26 height=44 xoffset=0 yoffset=35 xadvance=26 page=0 chnl=15
+kernings count=0

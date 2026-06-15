@@ -1,0 +1,86 @@
+========================================================================
+GARMIN CONNECT IQ STORE LISTING INFO - SNOWFALL WATCH FACE
+========================================================================
+
+------------------------------------------------------------------------
+FIELD: Title (Max 50 characters)
+------------------------------------------------------------------------
+Snowfall — Winter Alpine Watch Face
+
+(Alternates: "Snowfall — Winter Digital Watch Face" /
+ "Snowfall: Aurora & Snow Watch Face")
+
+
+------------------------------------------------------------------------
+FIELD: Description (Max 4000 characters)
+------------------------------------------------------------------------
+Snowfall is a premium, high-fidelity digital watch face featuring a crisp, serene winter alpine aesthetic. Experience a living winter sky, aurora ribbons over a starfield, drifting clouds, rolling snow drifts, falling snow, and a snow-laden pine silhouette, all procedurally rendered. Large, outlined digital time and clean complications keep you connected and styled for winter.
+
+FEATURES & DETAILS
+• LIVING WINTER SKY: A procedural backdrop that shifts colors dynamically by time of day (deep indigo night, cold rose dawn, pale midday blue, cold-peach sunset, and twilight purple).
+• AURORA & STARS: Wavy green/cyan/violet aurora borealis ribbons drift above a field of stars through the long winter nights.
+• ARCING SUN & MOON: Day/night orbital progression of a pale winter sun (with faint rotating rays and a cold halo) and a silver crescent moon, driven by the REAL sunrise/sunset for your location and date — the sky, day/night, and aurora all follow the true sun times.
+• PROCEDURAL ANIMATIONS: Drifting clouds, rolling snow-drift layers, falling snow, and a swaying snow-laden pine silhouette.
+• ROTATING SECONDS: A six-armed snowflake second indicator floating and orbiting the perimeter.
+• CONFIGURABLE COMPLICATIONS: Choose what the bottom-left and bottom-right complications show — Heart Rate (live BPM), Body Battery, Device Battery (with a live fill bar), Steps, Calories, or Off — each with a matching icon (heart, bolt, battery, boot, flame). Heart rate is sampled at most once every ~10 seconds to spare the battery. A frosted-ice steps progress bar with a numeric count sits in the center.
+• HIGH-CONTRAST OUTLINES: All texts (clock, date, weather, and battery metrics) feature a crisp black outline for absolute readability against the dynamic visual backdrops.
+
+BUILT FOR YOUR DISPLAY
+Snowfall adapts to your panel:
+• AMOLED (Fenix 8 / tactix 8 / quatix 8 and Fenix 8 Pro): smooth gradient resource fills, specular highlights, and active background illumination.
+• MIP / Solar (tactix 8 Solar, Fenix 8 Solar): high-contrast flat fills and optimized backdrops tuned for maximum sunlight readability.
+Everything is laid out relative to your screen, so it looks right on every supported case size.
+
+ALWAYS-ON FRIENDLY
+On AMOLED, the always-on display switches to a burn-in-safe variant — dim grey time/date, thin outline representations of the battery metrics, steps progress outline, and no visual fills or background animations. All lit pixels are shifted a few pixels each minute. MIP panels always show the full face.
+
+SETTINGS
+• Show Date — toggle the date line.
+• Step Goal Override — steps for a full progress bar; 0 uses the watch's own step goal.
+• Bottom-Left Complication — Off / Heart Rate / Body Battery / Device Battery / Steps / Calories.
+• Bottom-Right Complication — same options.
+
+PRIVACY
+Snowfall uses only the SensorHistory permission (to read Body Battery). It reads heart rate and last-known location on-device to show your BPM and compute local sunrise/sunset; it does not collect or transmit any data off your watch.
+
+SUPPORTED DEVICES
+tactix 8 (AMOLED & Solar), Fenix 8 (43/47/51mm AMOLED), Fenix 8 Solar, Fenix 8 Pro, quatix 8, Forerunner 965.
+
+Equip Snowfall, and take a moment in the snow.
+
+
+------------------------------------------------------------------------
+FIELD: What's New in this Version (Max 4000 characters)
+------------------------------------------------------------------------
+Version 1.1.0
+
+New in this release:
+
+• CONFIGURABLE COMPLICATIONS: Choose what the bottom-left and bottom-right show — Heart Rate, Body Battery, Device Battery, Steps, Calories, or Off — each with a matching icon.
+• HEART RATE: Live BPM from the optical sensor, sampled at most once every ~10 seconds to spare the battery.
+• REAL SUNRISE/SUNSET: The sun, day/night, aurora, and sky now follow the true sunrise/sunset for your location and date.
+• Device Battery now shows a battery icon with a live fill bar.
+
+Thanks for wearing Snowfall!
+
+
+------------------------------------------------------------------------
+PREVIOUS: Version 1.0.0 — Initial Release
+------------------------------------------------------------------------
+• Full support for AMOLED and MIP (Solar) screens.
+• High-contrast text outlining for perfect readability against moving snow and sky backdrops.
+• Living winter sky, aurora ribbons, drifting snow, snow-laden pine, and snowflake seconds.
+• Smooth time-of-day sky color gradient shifts and celestial orbits.
+
+
+------------------------------------------------------------------------
+FIELD: Settings (Select Yes/No as indicated)
+------------------------------------------------------------------------
+Category: Watch Faces
+Subcategory: Digital
+ANT+ Profiles: No
+Regional Limits: No
+Monetization: No
+Do you collect personal or sensitive data?: No
+Is this app designed for a specific company or event?: No
+========================================================================

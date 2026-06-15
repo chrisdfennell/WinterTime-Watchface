@@ -1,0 +1,23 @@
+<strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <string id="AppName">Snowfall</string>
+
+    <!-- Settings -->
+    <string id="ShowDateTitle">Show Date</string>
+    <string id="ShowDatePrompt">Show the date line beneath the time.</string>
+
+    <string id="StepGoalTitle">Step Goal Override</string>
+    <string id="StepGoalPrompt">Steps for a full progress bar. Set 0 to use the watch's own daily step goal.</string>
+
+    <!-- Complication pickers -->
+    <string id="LeftCompTitle">Bottom-Left Complication</string>
+    <string id="RightCompTitle">Bottom-Right Complication</string>
+    <string id="CompPrompt">Choose what this complication shows.</string>
+
+    <!-- Complication option labels (emoji render in the Garmin Connect app) -->
+    <string id="CompOff">Off</string>
+    <string id="CompHeartRate">❤ Heart Rate</string>
+    <string id="CompBodyBattery">⚡ Body Battery</string>
+    <string id="CompDeviceBattery">🔋 Device Battery</string>
+    <string id="CompSteps">👣 Steps</string>
+    <string id="CompCalories">🔥 Calories</string>
+</strings>

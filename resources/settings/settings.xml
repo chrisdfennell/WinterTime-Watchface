@@ -1,0 +1,35 @@
+<settings>
+    <!-- Toggle the date line under the time -->
+    <setting propertyKey="@Properties.ShowDate" title="@Strings.ShowDateTitle" prompt="@Strings.ShowDatePrompt">
+        <settingConfig type="boolean" />
+    </setting>
+
+    <!-- Override the steps target used by the progress bar (0 = device goal) -->
+    <setting propertyKey="@Properties.StepGoalOverride" title="@Strings.StepGoalTitle" prompt="@Strings.StepGoalPrompt">
+        <settingConfig type="numeric" min="0" max="100000" />
+    </setting>
+
+    <!-- Pick what the bottom-left complication shows -->
+    <setting propertyKey="@Properties.LeftComplication" title="@Strings.LeftCompTitle" prompt="@Strings.CompPrompt">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.CompOff</listEntry>
+            <listEntry value="1">@Strings.CompHeartRate</listEntry>
+            <listEntry value="2">@Strings.CompBodyBattery</listEntry>
+            <listEntry value="3">@Strings.CompDeviceBattery</listEntry>
+            <listEntry value="4">@Strings.CompSteps</listEntry>
+            <listEntry value="5">@Strings.CompCalories</listEntry>
+        </settingConfig>
+    </setting>
+
+    <!-- Pick what the bottom-right complication shows -->
+    <setting propertyKey="@Properties.RightComplication" title="@Strings.RightCompTitle" prompt="@Strings.CompPrompt">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.CompOff</listEntry>
+            <listEntry value="1">@Strings.CompHeartRate</listEntry>
+            <listEntry value="2">@Strings.CompBodyBattery</listEntry>
+            <listEntry value="3">@Strings.CompDeviceBattery</listEntry>
+            <listEntry value="4">@Strings.CompSteps</listEntry>
+            <listEntry value="5">@Strings.CompCalories</listEntry>
+        </settingConfig>
+    </setting>
+</settings>

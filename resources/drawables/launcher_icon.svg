@@ -1,0 +1,38 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Deep winter-night backdrop -->
+  <rect width="48" height="48" rx="8" fill="#05060F"/>
+  <circle cx="24" cy="24" r="21" stroke="#1E3A52" stroke-width="1.5" opacity="0.8"/>
+
+  <!-- Left globe: Body Battery (frost cyan) -->
+  <defs>
+    <radialGradient id="cyanGlobe" cx="40%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#CFF5F0"/>
+      <stop offset="55%" stop-color="#4FBFB4"/>
+      <stop offset="100%" stop-color="#0E2E2A"/>
+    </radialGradient>
+    <radialGradient id="iceGlobe" cx="40%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#C4E2FF"/>
+      <stop offset="55%" stop-color="#5A9EE8"/>
+      <stop offset="100%" stop-color="#0A1E3A"/>
+    </radialGradient>
+  </defs>
+  <circle cx="12" cy="30" r="8" fill="url(#cyanGlobe)" stroke="#9FE8E0" stroke-width="0.8"/>
+  <circle cx="10" cy="27" r="1.6" fill="#FFFFFF" opacity="0.8"/>
+
+  <!-- Right globe: device battery (glacier blue) -->
+  <circle cx="36" cy="30" r="8" fill="url(#iceGlobe)" stroke="#8FC4FF" stroke-width="0.8"/>
+  <circle cx="34" cy="27" r="1.6" fill="#FFFFFF" opacity="0.8"/>
+
+  <!-- Central time bar. Drawn with vector strokes (no <text>) so the SVG rasterizes
+       in headless CI containers that have no system fonts. -->
+  <rect x="18" y="13" width="12" height="9" rx="1.5" fill="#0A1424" stroke="#2E5A82" stroke-width="0.8"/>
+  <g stroke="#EAF6FF" stroke-width="1" stroke-linecap="round">
+    <line x1="22" y1="16" x2="22" y2="19"/>
+    <line x1="24" y1="16" x2="24" y2="19"/>
+    <line x1="26" y1="16" x2="26" y2="19"/>
+  </g>
+
+  <!-- Steps progress bar at the bottom (frost ice fill) -->
+  <rect x="14" y="40" width="20" height="2.5" rx="1.25" fill="#0E1622"/>
+  <rect x="14" y="40" width="13" height="2.5" rx="1.25" fill="#6FB6E8"/>
+</svg>

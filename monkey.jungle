@@ -1,0 +1,16 @@
+project.manifest = manifest.xml
+
+# Default resource paths
+base.resourcePath = resources
+
+# Device-specific resource paths. Each per-resolution folder supplies a correctly
+# sized Exocet bitmap-font set (and, for AMOLED, the background art); the base
+# resources/ provides the 454 fonts used by the 47/51mm AMOLED + Pro.
+#
+# AMOLED (454 fonts come from base; 416 overrides with its own font set):
+fenix847mm.resourcePath = $(base.resourcePath)
+fenix8pro47mm.resourcePath = $(base.resourcePath)
+fenix843mm.resourcePath = $(base.resourcePath);resources-round-416x416
+# MIP / Solar (smaller panels; supply their own scaled font set, no background art):
+fenix8solar51mm.resourcePath = $(base.resourcePath);resources-round-280x280
+fenix8solar47mm.resourcePath = $(base.resourcePath);resources-round-260x260
