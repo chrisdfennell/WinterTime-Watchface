@@ -9,6 +9,11 @@
         <settingConfig type="boolean" />
     </setting>
 
+    <!-- Toggle the occasional winter critters crossing the scene -->
+    <setting propertyKey="@Properties.ShowCritters" title="@Strings.ShowCrittersTitle" prompt="@Strings.ShowCrittersPrompt">
+        <settingConfig type="boolean" />
+    </setting>
+
     <!-- Override the steps target used by the progress bar (0 = device goal) -->
     <setting propertyKey="@Properties.StepGoalOverride" title="@Strings.StepGoalTitle" prompt="@Strings.StepGoalPrompt">
         <settingConfig type="numeric" min="0" max="100000" />

@@ -6,6 +6,10 @@
          gets a sparkling star topper + blinking lights. -->
     <property id="FestiveMode" type="boolean">true</property>
 
+    <!-- Winter critters: occasional visitors (fox, hare, cardinal, owl, wolf,
+         stag, chickadee) cross the scene now and then. -->
+    <property id="ShowCritters" type="boolean">true</property>
+
     <!-- Steps that equal a full progress bar. 0 = use ActivityMonitor's own step goal. -->
     <property id="StepGoalOverride" type="number">0</property>
 

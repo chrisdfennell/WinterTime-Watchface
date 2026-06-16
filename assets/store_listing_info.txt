@@ -22,6 +22,7 @@ FEATURES & DETAILS
 • ARCING SUN & MOON: Day/night orbital progression of a pale winter sun (with faint rotating rays and a cold halo) and a silver crescent moon, driven by the REAL sunrise/sunset for your location and date — the sky, day/night, and aurora all follow the true sun times.
 • PROCEDURAL ANIMATIONS: Drifting clouds, rolling snow-drift layers, falling snow, and a swaying snow-laden pine silhouette.
 • FESTIVE MODE: Flip one switch to deck the halls — Santa's sleigh and reindeer (Rudolph's nose and all) sweep across the sky every couple of minutes, the pine tree lights up with a sparkling star topper and strings of blinking multicolor lights, and a radiant Star of Bethlehem shines in the night sky. Toggle it all off for the pure alpine look.
+• WINTER CRITTERS: Occasional little visitors cross the scene — at most one at a time, every ~40 seconds. By day a red cardinal flies the sky, a snowshoe hare bounds across the snow, a red fox trots and snow-pounces, and a chickadee glides in to peck before flitting off. By night a snowy owl glides overhead, an arctic fox slips past, a grey wolf pauses to howl, and an antlered stag walks by with its breath steaming. A single switch turns them on or off.
 • ROTATING SECONDS: A six-armed snowflake second indicator floating and orbiting the perimeter.
 • CONFIGURABLE COMPLICATIONS: Choose what the bottom-left and bottom-right complications show — Heart Rate (live BPM), Body Battery, Device Battery (with a live fill bar), Steps, Calories, or Off — each with a matching icon (heart, bolt, battery, boot, flame). Heart rate is sampled at most once every ~10 seconds to spare the battery. A frosted-ice steps progress bar with a numeric count sits in the center.
 • HIGH-CONTRAST OUTLINES: All texts (clock, date, weather, and battery metrics) feature a crisp black outline for absolute readability against the dynamic visual backdrops.
@@ -38,6 +39,7 @@ On AMOLED, the always-on display switches to a burn-in-safe variant — dim grey
 SETTINGS
 • Show Date — toggle the date line.
 • Festive Mode — toggle Santa's sleigh flyover and the sparkling lit Christmas tree.
+• Winter Critters — toggle the occasional crossing visitors (fox, hare, cardinal, chickadee, owl, arctic fox, wolf, stag).
 • Step Goal Override — steps for a full progress bar; 0 uses the watch's own step goal.
 • Bottom-Left Complication — Off / Heart Rate / Body Battery / Device Battery / Steps / Calories.
 • Bottom-Right Complication — same options.
@@ -54,13 +56,20 @@ Equip Snowfall, and take a moment in the snow.
 ------------------------------------------------------------------------
 FIELD: What's New in this Version (Max 4000 characters)
 ------------------------------------------------------------------------
-Version 1.3.0
+Version 1.4.0
 
 New in this release:
 
-• FESTIVE MODE: A single new switch adds holiday magic — Santa's sleigh and reindeer fly across the sky every couple of minutes, the pine tree gets a sparkling star topper and strings of blinking multicolor lights, and a Star of Bethlehem shines at night. Turn it off any time for the classic alpine look.
+• WINTER CRITTERS: A new switch adds occasional little visitors that cross the scene — one at a time, every ~40 seconds. By day: a red cardinal, snowshoe hare, snow-pouncing red fox, and a chickadee that lands to peck. By night: a snowy owl, arctic fox, a grey wolf that pauses to howl, and an antlered stag with steaming breath. Turn them off any time.
+• SMOOTHER & MORE STABLE: A pass of performance work keeps the scene animating without tripping the watch's frame budget — adaptive render quality that auto-fits each device, a clipped always-on update, a cached/buffered sky gradient, and loop-safe sun math. No more freezes while you're looking at it.
 
 Thanks for wearing Snowfall!
+
+
+------------------------------------------------------------------------
+PREVIOUS: Version 1.3.0
+------------------------------------------------------------------------
+• FESTIVE MODE: A single new switch adds holiday magic — Santa's sleigh and reindeer fly across the sky every couple of minutes, the pine tree gets a sparkling star topper and strings of blinking multicolor lights, and a Star of Bethlehem shines at night. Turn it off any time for the classic alpine look.
 
 
 ------------------------------------------------------------------------

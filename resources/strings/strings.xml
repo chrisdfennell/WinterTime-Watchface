@@ -8,6 +8,9 @@
     <string id="FestiveTitle">🎅 Festive Mode</string>
     <string id="FestivePrompt">Santa's sleigh flies by now and then, and the pine tree gets a sparkling star topper and blinking lights.</string>
 
+    <string id="ShowCrittersTitle">🦊 Winter Critters</string>
+    <string id="ShowCrittersPrompt">Occasional winter visitors cross the scene — a red fox, snowshoe hare, cardinal or chickadee by day; a snowy owl, arctic fox, wolf or stag by night.</string>
+
     <string id="StepGoalTitle">Step Goal Override</string>
     <string id="StepGoalPrompt">Steps for a full progress bar. Set 0 to use the watch's own daily step goal.</string>
 

@@ -4,6 +4,20 @@ All notable changes to Snowfall are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to
 follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-06-16
+
+### Added
+- **Winter Critters**: A new app setting (on by default) adds occasional crossing visitors — at most one at a time, every ~40s, computed purely from the clock (no RNG, no state). The day pool is a red cardinal (flies the sky), a snowshoe hare (bounds across the snow), a red fox (trots, with a mid-screen snow-pounce), and a chickadee (glides in, lands and pecks, then flits off). The night pool is a snowy owl (glides overhead), an arctic fox (white trotter), a grey wolf (pauses mid-crossing to howl), and an antlered stag (walks across, breath steaming). Sky visitors draw in the sky pass; ground visitors draw after the snowbank so they stand on the snow. Each creature is silhouette-outlined for legibility and renders only in the active layer, so it never touches the always-on power budget.
+
+### Performance & Stability
+- **Adaptive render quality**: `onUpdate()` now measures its own frame time and nudges a quality level (0–3) with hysteresis; text-outline passes, sun rays, aurora ribbons, and falling-snow count scale with it, so the scene keeps animating and only sheds detail on hardware that can't keep up.
+- **Cheaper always-on**: on AMOLED, `onPartialUpdate()` now clips to just the central time/date band instead of re-rendering the whole screen; MIP keeps the full redraw (its sleep frame is the full colour scene).
+- **Cached/buffered rendering**: device settings, clock, and activity info are read once per frame and reused; sunrise/sunset retries are throttled while no fix is available; weather is skipped in always-on; the star field, sky-gradient tables, and drift/aurora polygon buffers are hoisted/reused; and the AMOLED sky gradient is rendered once into a `BufferedBitmap` (repainted in place only when colors change).
+- **Loop-safe math**: `normDeg`/`normHour` use bounded modulo with a non-finite (NaN/Infinity) guard instead of unbounded `while` loops, and the drifting-cloud wrap uses positive modulo.
+
+### Fixed
+- The snowflake seconds marker is now drawn last (on top of the time, date, and complications) and is gated on `mIsSleep` so it hides cleanly in low power on every device class (including MIP, where the old `mLowPower` gate never applied).
+
 ## [1.3.0] - 2026-06-15
 
 ### Added

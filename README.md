@@ -17,7 +17,8 @@ Snowfall brings a crisp, serene, and beautiful winter aesthetic to your watch:
 - **Snow-laden Pine Silhouette**: A tiered evergreen with snow caps sways in the breeze at the snowbank.
 - **Falling Snow**: Gentle snowflakes drift down across the whole face in active mode.
 - **Festive Mode** *(one toggle, on by default)*: Holiday magic on demand. Santa's sleigh and two reindeer — the lead one with Rudolph's glowing red nose — sweep across the sky on a timed flyover every ~2.5 minutes, trailing stardust. The pine tree lights up with garlands of blinking multicolor lights and a twinkling, pulsing five-point star topper, and a radiant **Star of Bethlehem** joins the night sky. Switch it off for the pure alpine look.
-- **Snowflake Seconds**: A six-armed snowflake second indicator orbits the outer perimeter.
+- **Winter Critters** *(one toggle, on by default)*: Occasional little visitors cross the scene — at most one at a time, every ~40s, computed purely from the clock. By day a **red cardinal** flies the sky, a **snowshoe hare** bounds across the snow, a **red fox** trots and snow-pounces, and a **chickadee** glides in to peck before flitting off. By night a **snowy owl** glides overhead, an **arctic fox** trots past, a **grey wolf** pauses to howl, and an antlered **stag** walks by with breath steaming. Sky visitors are drawn in the sky; ground visitors walk on the snow. Critters never render in always-on, so they cost nothing on the burn-in budget.
+- **Snowflake Seconds**: A six-armed snowflake second indicator orbits the outer perimeter (drawn on top of everything, and only while the watch is active).
 - **Centered Digital Time**: Large, clean, rounded clock numerals (Arial Rounded MT Bold) centered with high-contrast black outlining.
 - **Centered Date & Weather**: An elegant date line (Segoe UI Light) showing the calendar date and dynamic weather temperature (with automatic Celsius/Fahrenheit unit conversion).
 - **Configurable Complications**: The bottom-left and bottom-right complications are each chosen in the app settings, and the watch draws a matching icon:
@@ -67,7 +68,16 @@ Re-run `python tools/gen_fonts.py` after changing font sizes or adding a new res
 The face has two render paths sharing one `onUpdate()`:
 
 - **Active mode** — full brightness, animations (snow drifts, swaying pine, sun rotation, falling snow, drifting clouds, aurora), sky gradients, and text outlines.
-- **Always-on / low-power** (`mIsSleep`) — burn-in-safe: dim grey time/date, thin outline representations of the battery metrics, steps progress outline, and **no visual fills or background animations**. All lit pixels are shifted a few pixels each minute (`requiresBurnInProtection`). `onPartialUpdate()` only repaints when the minute changes, staying well inside the always-on power budget.
+- **Always-on / low-power** (`mIsSleep`) — burn-in-safe: dim grey time/date, thin outline representations of the battery metrics, steps progress outline, and **no visual fills or background animations**. All lit pixels are shifted a few pixels each minute (`requiresBurnInProtection`). `onPartialUpdate()` only repaints when the minute changes, and on AMOLED always-on it **clips to just the central time/date band** rather than re-rendering the whole screen — staying well inside the partial-update budget. (MIP panels, whose sleep frame is the full colour scene, keep the full redraw.)
+
+### Performance & stability
+
+Snowfall is tuned to keep animating smoothly on everything from a 166px Instinct to a 454px flagship without tripping Garmin's per-frame execution/power budget (the usual cause of a watch face "freezing"):
+
+- **Adaptive render quality** — `onUpdate()` times its own frame and nudges a quality level (0–3) with hysteresis. Expensive detail (text-outline passes, sun rays, aurora ribbons, falling-snow count) scales with it, so the scene keeps fully animating and only sheds detail on hardware that can't keep up — auto-fitting each device with no per-device guessing.
+- **Cached per-frame syscalls** — device settings, clock, and activity info are read once per redraw and reused; sunrise/sunset retries are throttled while no fix is available.
+- **No per-frame heap churn** — star field, sky-gradient tables, and the drift/aurora polygon buffers are hoisted/reused; on AMOLED the sky gradient is rendered once into a `BufferedBitmap` and blitted, repainting in place only when the colors change.
+- **Loop-safe math** — angle/hour normalizers use bounded modulo with a non-finite guard (no unbounded `while`), and `%`-based wraps use positive modulo.
 
 ## Data sources
 
@@ -85,6 +95,7 @@ Editable in Garmin Connect / the simulator's App Settings:
 
 - **Show Date** — toggle the date and weather line.
 - **Festive Mode** — toggle the holiday extras: Santa's sleigh flyover, the lit/sparkling Christmas tree, and the Star of Bethlehem.
+- **Winter Critters** — toggle the occasional crossing visitors (fox, hare, cardinal, chickadee, owl, arctic fox, wolf, stag).
 - **Step Goal Override** — steps for a full progress bar; `0` uses the watch's own step goal.
 - **Bottom-Left Complication** — Off / Heart Rate / Body Battery / Device Battery / Steps / Calories.
 - **Bottom-Right Complication** — same options (each shows an emoji in the phone picker and a matching icon on the watch).

@@ -45,6 +45,50 @@ class SnowfallView extends WatchUi.WatchFace {
     private var mFlatGlobes as Boolean = false; // true on MIP: flat 2-tone fills (no banded gradient)
     private var mLastMin as Number = -1;       // throttles low-power partial updates
 
+    // --- Per-frame syscall caches (read once at the top of a redraw, reused
+    //     everywhere; helpers fall back to a live read if called outside one). ---
+    private var mSettings as System.DeviceSettings or Null = null;  // Fix #6
+    private var mClock as System.ClockTime or Null = null;          // Fix #10
+    private var mActInfo as ActivityMonitor.Info or Null = null;    // Fix #10
+
+    // --- Sunrise/sunset retry throttle (Fix #7) ---
+    private var mSunLastTry as Number = -10000;  // epoch sec of last failed retry
+
+    // --- Adaptive render quality (Fix #13): self-tunes detail to the device by
+    //     measuring each active frame and nudging mQuality with hysteresis. ---
+    private var mQuality as Number = 2;        // 3 = full detail, 0 = leanest
+    private var mFrameStart as Number = 0;
+    private const Q_SLOW_MS = 220;             // frame slower than this -> drop a level
+    private const Q_FAST_MS = 120;             // faster than this -> raise a level
+
+    // --- AMOLED sky-gradient buffer (Fix #9/#12): render the per-row gradient
+    //     into a bitmap once and blit it; repaint in place only when colors
+    //     change. MIP uses a flat fill and never touches this. ---
+    private var mSkyBufRef as Graphics.BufferedBitmapReference or Null = null;
+    private var mSkyKeyTop as Number = -1;
+    private var mSkyKeyBottom as Number = -1;
+    private var mSkyKeyW as Number = -1;
+    private var mSkyKeyH as Number = -1;
+
+    // --- Hoisted per-frame allocations (Fix #2/#3) -------------------------
+    // Night star field (was two 18-element literals rebuilt every night frame).
+    private const STAR_X = [70, 120, 180, 240, 310, 380, 90, 150, 220, 290, 360, 130, 200, 270, 340, 110, 250, 330] as Array<Number>;
+    private const STAR_Y = [50, 70, 45, 60, 55, 75, 110, 95, 120, 105, 115, 160, 150, 175, 155, 200, 210, 195] as Array<Number>;
+    // Sky-gradient keyframe color tables (the hour arrays still vary per frame).
+    private const SKY_TOP_REAL    = [0x05060F, 0x121028, 0x6E7CA6, 0x9DC2E0, 0xB8D2E8, 0x8FA6CE, 0x7E8EBE, 0x3A3A6A, 0x05060F] as Array<Number>;
+    private const SKY_BOTTOM_REAL = [0x0A0C1A, 0x2A2548, 0xC890A8, 0xE8F2FA, 0xF0F6FB, 0xF0D0B0, 0xE8A878, 0x6A4A7A, 0x0A0C1A] as Array<Number>;
+    private const SKY_TOP_FB      = [0x05060F, 0x121028, 0x6E7CA6, 0x9DC2E0, 0xB8D2E8, 0x7E8EBE, 0x3A3A6A, 0x0F1228, 0x05060F] as Array<Number>;
+    private const SKY_BOTTOM_FB   = [0x0A0C1A, 0x2A2548, 0xC890A8, 0xE8F2FA, 0xF0F6FB, 0xE8A878, 0x6A4A7A, 0x2A2548, 0x0A0C1A] as Array<Number>;
+    private const SKY_HOURS_FB    = [0.0, 6.0, 8.0, 11.0, 15.0, 16.5, 18.0, 20.0, 24.0] as Array<Float>;
+    // Aurora ribbon keyframes (were rebuilt every night frame).
+    private const AUR_BASES  = [0.20, 0.27, 0.24] as Array<Float>;
+    private const AUR_AMPS   = [0.045, 0.060, 0.050] as Array<Float>;
+    private const AUR_DIM    = [0x1E6E3C, 0x1A5A6E, 0x3A2E6E] as Array<Number>;
+    private const AUR_BRIGHT = [0x3FB370, 0x36A6BE, 0x6A5ABE] as Array<Number>;
+    // Reusable polygon buffers for the snow drifts + aurora bands.
+    private var mDriftPts as Array<Array> or Null = null;
+    private var mAuroraPts as Array<Array> or Null = null;
+
     // --- Complication option ids (must match resources/settings list values) ---
     private const COMP_OFF      = 0;
     private const COMP_HR       = 1;  // heart rate (BPM)
@@ -59,6 +103,17 @@ class SnowfallView extends WatchUi.WatchFace {
     private var mLeftComp as Number = COMP_HR;       // bottom-left complication
     private var mRightComp as Number = COMP_BATTERY; // bottom-right complication
     private var mFestive as Boolean = true;          // Santa's sleigh + sparkling tree
+    private var mShowCritters as Boolean = true;     // occasional winter visitors
+
+    // --- Critter type ids (day + night pools, indexed by a clock hash) ---
+    private const CR_CARDINAL   = 0;  // red songbird, flies across the sky (day)
+    private const CR_HARE       = 1;  // snowshoe hare, bounds across the snow (day)
+    private const CR_FOX        = 2;  // red fox, trots + mid-screen snow-pounce (day)
+    private const CR_CHICKADEE  = 3;  // chickadee: glides in, lands & pecks, flits off (day)
+    private const CR_OWL        = 4;  // snowy owl, glides across the night sky (night)
+    private const CR_ARCTIC_FOX = 5;  // white fox, trots across the snow (night)
+    private const CR_WOLF       = 6;  // grey wolf, trots then pauses to howl (night)
+    private const CR_STAG       = 7;  // antlered stag, walks across, breath steaming (night)
 
     // --- Festive timing: a sleigh flyover every SLEIGH_PERIOD seconds, lasting
     //     SLEIGH_FLIGHT seconds as it crosses the sky left-to-right. ---
@@ -117,11 +172,13 @@ class SnowfallView extends WatchUi.WatchFace {
                 var leftComp = Application.Properties.getValue("LeftComplication");
                 var rightComp = Application.Properties.getValue("RightComplication");
                 var festive = Application.Properties.getValue("FestiveMode");
+                var critters = Application.Properties.getValue("ShowCritters");
                 if (showDate != null) { mShowDate = showDate; }
                 if (stepGoal != null) { mStepGoalOverride = stepGoal; }
                 if (leftComp != null) { mLeftComp = leftComp; }
                 if (rightComp != null) { mRightComp = rightComp; }
                 if (festive != null) { mFestive = festive; }
+                if (critters != null) { mShowCritters = critters; }
             }
         } catch (e) {
             // keep defaults
@@ -173,20 +230,26 @@ class SnowfallView extends WatchUi.WatchFace {
 
     // Single render entry point for both active and low-power frames.
     function onUpdate(dc as Dc) as Void {
+        mFrameStart = System.getTimer();   // Fix #13: measure this frame's cost
+
         var w = mWidth;
         var h = mHeight;
+
+        // Cache per-frame syscalls once (Fix #6 / #10): settings, clock, activity.
+        var settings = System.getDeviceSettings();
+        mSettings = settings;
+        var clockTime = System.getClockTime();
+        mClock = clockTime;
+        mActInfo = ActivityMonitor.getInfo();
 
         var burnIn = false;
         var dx = 0;
         var dy = 0;
-        var settings = System.getDeviceSettings();
         var hasBurnIn = (settings has :requiresBurnInProtection) && settings.requiresBurnInProtection;
         if (hasBurnIn && mIsSleep) {
             burnIn = true;
-            var phase = System.getClockTime().min % 4;
-            if (phase == 1)      { dx = 4;  dy = 2; }
-            else if (phase == 2) { dx = -3; dy = 4; }
-            else if (phase == 3) { dx = 3;  dy = -4; }
+            var shift = computeBurnInShift();
+            dx = shift[0]; dy = shift[1];
         }
         mLowPower = burnIn;
         mFlatGlobes = !hasBurnIn;
@@ -199,7 +262,6 @@ class SnowfallView extends WatchUi.WatchFace {
         dc.clear();
 
         // Time values
-        var clockTime = System.getClockTime();
         var hour = clockTime.hour;
         var min = clockTime.min;
         var secVal = clockTime.sec;
@@ -222,17 +284,22 @@ class SnowfallView extends WatchUi.WatchFace {
                 dc.setColor(cTop, cTop);
                 dc.fillRectangle(0, 0, w, skyH);
             } else {
-                // AMOLED: Draw smooth gradient
-                var step = 4;
-                for (var y = 0; y < skyH; y += step) {
-                    var frac = y.toFloat() / skyH.toFloat();
-                    var c = lerpColor(cTop, cBottom, frac);
-                    dc.setColor(c, Graphics.COLOR_TRANSPARENT);
-                    dc.fillRectangle(0, y, w, step);
+                // AMOLED: smooth gradient, cached in a BufferedBitmap so the
+                // per-row fill loop runs ~once/minute, not every frame. (Fix #9/#12)
+                var skyBmp = getSkyBitmap(w, skyH, cTop, cBottom);
+                if (skyBmp != null) {
+                    dc.drawBitmap(0, 0, skyBmp);
+                } else {
+                    drawSkyGradientDirect(dc, w, skyH, cTop, cBottom);
                 }
             }
 
             var isNight = !(tNow >= mSunrise && tNow < mSunset);
+
+            // At most one critter is active at a time; computed purely from the
+            // clock (no RNG/state). Sky visitors draw in the sky pass below;
+            // ground visitors draw after the snowbank so they stand on the snow.
+            var crit = mShowCritters ? computeCritter(hour, min, secVal, isNight) : null;
 
             // C. Draw Aurora ribbons + Stars at night
             if (isNight) {
@@ -240,11 +307,9 @@ class SnowfallView extends WatchUi.WatchFace {
                     drawAurora(dc, w, skyH, secVal);
                 }
                 dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-                var starX = [70, 120, 180, 240, 310, 380, 90, 150, 220, 290, 360, 130, 200, 270, 340, 110, 250, 330] as Array<Number>;
-                var starY = [50, 70, 45, 60, 55, 75, 110, 95, 120, 105, 115, 160, 150, 175, 155, 200, 210, 195] as Array<Number>;
-                for (var i = 0; i < starX.size(); i++) {
-                    var sx = (starX[i] * w / 454).toNumber();
-                    var sy = (starY[i] * h / 454).toNumber();
+                for (var i = 0; i < STAR_X.size(); i++) {
+                    var sx = (STAR_X[i] * w / 454).toNumber();
+                    var sy = (STAR_Y[i] * h / 454).toNumber();
                     dc.drawPoint(sx, sy);
                 }
 
@@ -279,18 +344,20 @@ class SnowfallView extends WatchUi.WatchFace {
                 if (sunSkyFrac > 1.0) { sunSkyFrac = 1.0; }
                 var sunSkyColor = lerpColor(cTop, cBottom, sunSkyFrac);
 
-                // Faint rays rotation based on seconds
-                dc.setColor(0xCFE6F5, Graphics.COLOR_TRANSPARENT);
-                dc.setPenWidth(1);
-                var numRays = 8;
-                var secOffset = secVal.toFloat() * 0.02;
-                for (var i = 0; i < numRays; i++) {
-                    var rayAngle = (i * (2.0 * Math.PI / numRays)) + secOffset;
-                    var rx1 = (sx + (sunR + 2) * Math.cos(rayAngle)).toNumber();
-                    var ry1 = (sy + (sunR + 2) * Math.sin(rayAngle)).toNumber();
-                    var rx2 = (sx + (sunR + 8) * Math.cos(rayAngle)).toNumber();
-                    var ry2 = (sy + (sunR + 8) * Math.sin(rayAngle)).toNumber();
-                    dc.drawLine(rx1, ry1, rx2, ry2);
+                // Faint rays rotation based on seconds (dropped at low quality, Fix #13)
+                if (mQuality >= 2) {
+                    dc.setColor(0xCFE6F5, Graphics.COLOR_TRANSPARENT);
+                    dc.setPenWidth(1);
+                    var numRays = 8;
+                    var secOffset = secVal.toFloat() * 0.02;
+                    for (var i = 0; i < numRays; i++) {
+                        var rayAngle = (i * (2.0 * Math.PI / numRays)) + secOffset;
+                        var rx1 = (sx + (sunR + 2) * Math.cos(rayAngle)).toNumber();
+                        var ry1 = (sy + (sunR + 2) * Math.sin(rayAngle)).toNumber();
+                        var rx2 = (sx + (sunR + 8) * Math.cos(rayAngle)).toNumber();
+                        var ry2 = (sy + (sunR + 8) * Math.sin(rayAngle)).toNumber();
+                        dc.drawLine(rx1, ry1, rx2, ry2);
+                    }
                 }
 
                 // Cold pale halo
@@ -321,10 +388,18 @@ class SnowfallView extends WatchUi.WatchFace {
 
             // E. Draw Drifting Snow Clouds
             var cloudOffset = (min * 60 + secVal).toFloat();
-            var cx1 = ((w * 0.1 + (cloudOffset * 0.08)).toNumber()) % (w + 80) - 40;
-            var cx2 = ((w * 0.7 - (cloudOffset * 0.05)).toNumber()) % (w + 80) - 40;
+            // Positive modulo: Monkey C's % keeps the dividend's sign, so a
+            // drifting (possibly negative) position must wrap with ((v%s)+s)%s.
+            var cloudSpan = w + 80;
+            var cx1 = (((((w * 0.1 + (cloudOffset * 0.08)).toNumber()) % cloudSpan) + cloudSpan) % cloudSpan) - 40;
+            var cx2 = (((((w * 0.7 - (cloudOffset * 0.05)).toNumber()) % cloudSpan) + cloudSpan) % cloudSpan) - 40;
             drawCloud(dc, cx1, (h * 0.20).toNumber());
             drawCloud(dc, cx2, (h * 0.28).toNumber());
+
+            // E2. Sky critters (cardinal / owl) glide through the sky here.
+            if (crit != null && isSkyCritter(crit[0] as Number)) {
+                drawCritter(dc, crit);
+            }
 
             // F. Draw Rolling Snow Drifts (sine-wave polygons, gentle)
             var driftPhase1 = secVal.toFloat() * 0.04;
@@ -349,15 +424,13 @@ class SnowfallView extends WatchUi.WatchFace {
                 drawSleighFlyover(dc, w, h, hour, min, secVal);
             }
 
+            // H3. Ground critters (hare/fox/chickadee/wolf/stag) walk on the snow.
+            if (crit != null && !isSkyCritter(crit[0] as Number)) {
+                drawCritter(dc, crit);
+            }
+
             // I. Draw Falling Snow
             drawSnow(dc, w, h, secVal, min);
-
-            // J. Draw Snowflake Seconds orbiting
-            var secAngle = (secVal * 6.0) * Math.PI / 180.0;
-            var secRadius = (w * 0.44).toNumber() - 10;
-            var fsx = cx + (secRadius * Math.sin(secAngle)).toNumber();
-            var fsy = cy - (secRadius * Math.cos(secAngle)).toNumber();
-            drawSnowflake(dc, fsx, fsy);
         }
 
         // --- Center Clock & Date ---
@@ -383,20 +456,52 @@ class SnowfallView extends WatchUi.WatchFace {
         drawXpBar(dc, cx, barY, barW, barH, stepsFraction);
 
         if (!burnIn) {
-            var actInfo = ActivityMonitor.getInfo();
+            var actInfo = (mActInfo != null) ? mActInfo : ActivityMonitor.getInfo();
             var steps = (actInfo != null && actInfo.steps != null) ? actInfo.steps : 0;
             var stepsStr = steps.format("%d") + " STEPS";
             drawTextWithOutline(dc, cx, barY - 14, mFontLabel, stepsStr, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER, 0xFFFFFF);
         }
+
+        // Snowflake seconds marker — drawn LAST so it sits on top of the time,
+        // date, and complications (draw order = z-order in CIQ). Only animates
+        // while active; gated on mIsSleep (NOT mLowPower) so it hides correctly
+        // on MIP too, where mLowPower is never true. (Fix #14 + z-order)
+        if (!mIsSleep) {
+            var secAngle = (secVal * 6.0) * Math.PI / 180.0;
+            var secRadius = (w * 0.44).toNumber() - 10;
+            var fsx = cx + (secRadius * Math.sin(secAngle)).toNumber();
+            var fsy = cy - (secRadius * Math.cos(secAngle)).toNumber();
+            drawSnowflake(dc, fsx, fsy);
+        }
+
+        // Adaptive quality (Fix #13): nudge detail up/down by this frame's cost,
+        // active frames only — never adapt in low-power/AOD.
+        if (!mLowPower) {
+            var dt = System.getTimer() - mFrameStart;
+            if (dt > Q_SLOW_MS) { if (mQuality > 0) { mQuality--; } }
+            else if (dt < Q_FAST_MS) { if (mQuality < 3) { mQuality++; } }
+        }
+    }
+
+    // Shared anti-burn-in pixel shift (Fix #2 dedup): used by both onUpdate and
+    // the AMOLED onPartialUpdate cheap path so they nudge by the same amount.
+    private function computeBurnInShift() as Array<Number> {
+        var clock = (mClock != null) ? mClock : System.getClockTime();
+        var phase = clock.min % 4;
+        if (phase == 1)      { return [4, 2]; }
+        else if (phase == 2) { return [-3, 4]; }
+        else if (phase == 3) { return [3, -4]; }
+        return [0, 0];
     }
 
     // ------------------------------------------------------------------ Elements
 
     function drawTime(dc as Dc, cx as Number, cy as Number) as Void {
-        var clock = System.getClockTime();
+        var clock = (mClock != null) ? mClock : System.getClockTime();
         var hour = clock.hour;
         var min = clock.min;
-        var is24 = System.getDeviceSettings().is24Hour;
+        var settings = (mSettings != null) ? mSettings : System.getDeviceSettings();
+        var is24 = settings.is24Hour;
         if (!is24) {
             hour = hour % 12;
             if (hour == 0) { hour = 12; }
@@ -414,8 +519,10 @@ class SnowfallView extends WatchUi.WatchFace {
         var info = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
         var dateStr = info.day_of_week.toUpper() + "   " + info.month.toUpper() + " " + info.day;
 
-        // Append weather if available
-        var weatherStr = getWeatherString();
+        // Append weather if available. Skip the lookup in always-on so it stays
+        // out of the partial-update budget and the dim AOD date matches the full
+        // and partial redraws (no flicker). (Fix #11)
+        var weatherStr = mLowPower ? null : getWeatherString();
         if (weatherStr != null) {
             dateStr = dateStr + "   •   " + weatherStr;
         }
@@ -437,29 +544,37 @@ class SnowfallView extends WatchUi.WatchFace {
     // Aurora borealis: a few wavy ribbons of green/cyan/violet light near the
     // top of the night sky. Each ribbon is a dim wide band with a brighter core.
     private function drawAurora(dc as Dc, w as Number, skyH as Number, sec as Number) as Void {
-        var bases  = [0.20, 0.27, 0.24] as Array<Float>;
-        var amps   = [0.045, 0.060, 0.050] as Array<Float>;
-        var dim    = [0x1E6E3C, 0x1A5A6E, 0x3A2E6E] as Array<Number>;
-        var bright = [0x3FB370, 0x36A6BE, 0x6A5ABE] as Array<Number>;
-        for (var b = 0; b < 3; b++) {
-            var baseY = (skyH * bases[b]).toNumber();
-            var amp = skyH * amps[b];
+        // Ribbon count scales with adaptive quality (Fix #13); at the leanest
+        // level the dim wide under-band is dropped too.
+        var ribbons = (mQuality >= 2) ? 3 : (mQuality == 1) ? 2 : 1;
+        for (var b = 0; b < ribbons; b++) {
+            var baseY = (skyH * AUR_BASES[b]).toNumber();
+            var amp = skyH * AUR_AMPS[b];
             var phase = sec.toFloat() * 0.03 + b * 1.7;
-            drawAuroraBand(dc, w, baseY, amp, (skyH * 0.10).toNumber(), phase, dim[b]);
-            drawAuroraBand(dc, w, baseY, amp, (skyH * 0.035).toNumber(), phase, bright[b]);
+            if (mQuality >= 1) {
+                drawAuroraBand(dc, w, baseY, amp, (skyH * 0.10).toNumber(), phase, AUR_DIM[b]);
+            }
+            drawAuroraBand(dc, w, baseY, amp, (skyH * 0.035).toNumber(), phase, AUR_BRIGHT[b]);
         }
     }
 
     private function drawAuroraBand(dc as Dc, w as Number, baseY as Number, amp as Float, thick as Number, phase as Float, color as Number) as Void {
         var steps = 16;
         var n = (steps + 1) * 2;
-        var pts = new [n] as Array<Array>;
+        // Reuse a persistent buffer (steps is fixed) instead of allocating a
+        // fresh [n] array of pairs on every band. (Fix #3)
+        if (mAuroraPts == null) {
+            var buf = new [n] as Array<Array>;
+            for (var k = 0; k < n; k++) { buf[k] = [0, 0]; }
+            mAuroraPts = buf;
+        }
+        var pts = mAuroraPts;
         var sw = w / steps;
         for (var i = 0; i <= steps; i++) {
             var x = i * sw;
             var y = baseY + (amp * Math.sin(x.toFloat() / 55.0 + phase)).toNumber();
-            pts[i] = [x, y];
-            pts[n - 1 - i] = [x, y + thick];
+            pts[i][0] = x; pts[i][1] = y;
+            pts[n - 1 - i][0] = x; pts[n - 1 - i][1] = y + thick;
         }
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.fillPolygon(pts);
@@ -471,15 +586,23 @@ class SnowfallView extends WatchUi.WatchFace {
 
         var steps = 12;
         var stepW = w / steps;
-        var points = new [steps + 3] as Array<Array>;
-        points[0] = [w, h];
-        points[1] = [0, h];
+        // Reuse a persistent buffer (steps is fixed) instead of allocating a
+        // fresh [steps+3] array of pairs every call. (Fix #3)
+        if (mDriftPts == null) {
+            var buf = new [steps + 3] as Array<Array>;
+            for (var k = 0; k < steps + 3; k++) { buf[k] = [0, 0]; }
+            mDriftPts = buf;
+        }
+        var points = mDriftPts;
+        points[0][0] = w; points[0][1] = h;
+        points[1][0] = 0; points[1][1] = h;
 
         for (var i = 0; i <= steps; i++) {
             var x = i * stepW;
             var angle = (x.toFloat() / waveLen) + phase;
             var y = yBase + (amp * Math.sin(angle)).toNumber();
-            points[i + 2] = [x, y];
+            points[i + 2][0] = x;
+            points[i + 2][1] = y;
         }
 
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
@@ -762,7 +885,8 @@ class SnowfallView extends WatchUi.WatchFace {
     private function drawSnow(dc as Dc, w as Number, h as Number, sec as Number, min as Number) as Void {
         var t = (min * 60 + sec).toFloat();
         dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-        var n = 22;
+        // Particle count scales with adaptive quality (Fix #13).
+        var n = (mQuality >= 3) ? 22 : (mQuality == 2) ? 18 : (mQuality == 1) ? 12 : 8;
         for (var i = 0; i < n; i++) {
             var colF = ((i * 37) % 100).toFloat() / 100.0;   // base column 0..1
             var speed = 16.0 + (i % 5) * 7.0;                // fall speed
@@ -777,8 +901,24 @@ class SnowfallView extends WatchUi.WatchFace {
     }
 
     private function drawSnowflake(dc as Dc, sx as Number, sy as Number) as Void {
+        // Black outline pass (thicker arms + a backing dot), then the bright
+        // flake on top, so the marker stays legible over the time/date text and
+        // bright snow alike.
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
+        snowflakeArms(dc, sx, sy, 3);
+        dc.fillCircle(sx, sy, 4);
+
         dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+        snowflakeArms(dc, sx, sy, 1);
+        dc.setColor(0xCFEFFF, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(sx, sy, 2);
         dc.setPenWidth(1);
+    }
+
+    // The six spokes + their little branch arms, drawn at the given pen width
+    // (caller sets the colour). Used twice: a thick black outline, then white.
+    private function snowflakeArms(dc as Dc, sx as Number, sy as Number, penW as Number) as Void {
+        dc.setPenWidth(penW);
         for (var a = 0; a < 360; a += 60) {
             var rad = a * Math.PI / 180.0;
             var ex = (sx + 7 * Math.cos(rad)).toNumber();
@@ -793,8 +933,6 @@ class SnowfallView extends WatchUi.WatchFace {
             dc.drawLine(bx, by, (bx + 3 * Math.cos(p1)).toNumber(), (by + 3 * Math.sin(p1)).toNumber());
             dc.drawLine(bx, by, (bx + 3 * Math.cos(p2)).toNumber(), (by + 3 * Math.sin(p2)).toNumber());
         }
-        dc.setColor(0xCFEFFF, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(sx, sy, 2);
     }
 
     private function drawWinterBezel(dc as Dc, gx as Number, gy as Number, r as Number, lit as Boolean) as Void {
@@ -959,7 +1097,7 @@ class SnowfallView extends WatchUi.WatchFace {
     // ------------------------------------------------------------------- Data
 
     function getStepFraction() as Float {
-        var info = ActivityMonitor.getInfo();
+        var info = (mActInfo != null) ? mActInfo : ActivityMonitor.getInfo();
         if (info == null || info.steps == null) { return 0.0; }
         var steps = info.steps;
         var goal = mStepGoalOverride;
@@ -1038,12 +1176,12 @@ class SnowfallView extends WatchUi.WatchFace {
     }
 
     function getSteps() as Number {
-        var info = ActivityMonitor.getInfo();
+        var info = (mActInfo != null) ? mActInfo : ActivityMonitor.getInfo();
         return (info != null && info.steps != null) ? info.steps : 0;
     }
 
     function getCalories() as Number {
-        var info = ActivityMonitor.getInfo();
+        var info = (mActInfo != null) ? mActInfo : ActivityMonitor.getInfo();
         return (info != null && info.calories != null) ? info.calories : 0;
     }
 
@@ -1185,6 +1323,470 @@ class SnowfallView extends WatchUi.WatchFace {
         dc.fillCircle(x, y + 2, 4);
     }
 
+    // -------------------------------------------------------------- Critters
+    //
+    // Occasional winter visitors that cross the screen once in a while. At most
+    // ONE is ever active. Everything is deterministic from the clock (no RNG, no
+    // state), so a crossing renders identically each frame within a second, and
+    // critters are only drawn in the active layer (never low-power/AOD) so they
+    // never touch the partial-update budget. Each creature is outlined by drawing
+    // its silhouette 4x at +/-1 diagonal offsets in black, then once in colour,
+    // to stay legible over bright snow and dark sky alike.
+
+    // Pick the active critter for this instant, or null. PERIOD = seconds between
+    // possible visitors; CROSS = how long one crossing lasts. ~1 in 5 windows is
+    // quiet (period % 5 == 0). Returns [type, dir, frac, seed].
+    private function computeCritter(hour as Number, min as Number, sec as Number, isNight as Boolean) as Array or Null {
+        var PERIOD = 38.0;
+        var CROSS  = 8.0;
+
+        var tDay = (hour * 3600 + min * 60 + sec).toFloat();
+        var period = (tDay / PERIOD).toNumber();
+        var local = tDay - period * PERIOD;
+
+        if (period % 5 == 0) { return null; }   // quiet window
+        if (local >= CROSS) { return null; }
+
+        var frac = local / CROSS;               // 0..1 across the screen
+        var dir = ((period * 31 + 7) % 2 == 0) ? 1 : -1;
+        var sel = (period * 17 + 5) % 4;
+
+        var type;
+        if (isNight) {
+            var nightPool = [CR_OWL, CR_ARCTIC_FOX, CR_WOLF, CR_STAG] as Array<Number>;
+            type = nightPool[sel];
+        } else {
+            var dayPool = [CR_CARDINAL, CR_HARE, CR_FOX, CR_CHICKADEE] as Array<Number>;
+            type = dayPool[sel];
+        }
+        return [type, dir, frac, period] as Array;
+    }
+
+    // Sky critters (cardinal, owl) draw up in the sky pass; everything else walks
+    // on the snow and draws after the snowbank.
+    private function isSkyCritter(type as Number) as Boolean {
+        return type == CR_CARDINAL || type == CR_OWL;
+    }
+
+    // Position the active critter for its type and dispatch to its drawer.
+    private function drawCritter(dc as Dc, crit as Array) as Void {
+        var w = mWidth;
+        var h = mHeight;
+        var type = crit[0] as Number;
+        var dir = crit[1] as Number;
+        var frac = crit[2] as Float;
+
+        var margin = (w * 0.18).toNumber();
+        var span = w + 2 * margin;
+        var x;
+        if (dir == 1) {
+            x = (-margin + frac * span).toNumber();
+        } else {
+            x = (w + margin - frac * span).toNumber();
+        }
+
+        if (type == CR_CARDINAL) {
+            var y = (h * 0.22).toNumber() + (h * 0.04 * Math.sin(frac * Math.PI * 2.0)).toNumber();
+            drawCardinal(dc, x, y, dir, Math.sin(frac * Math.PI * 9.0), (w * 0.045).toNumber());
+        } else if (type == CR_OWL) {
+            var y = (h * 0.20).toNumber() + (h * 0.03 * Math.sin(frac * Math.PI * 2.0)).toNumber();
+            drawOwl(dc, x, y, dir, Math.sin(frac * Math.PI * 4.0), (w * 0.06).toNumber());
+        } else if (type == CR_HARE) {
+            var groundY = (h * 0.93).toNumber();
+            var sv = Math.sin(frac * Math.PI * 7.0);
+            if (sv < 0.0) { sv = -sv; }            // bounding hops
+            var y = (groundY - (h * 0.05) * sv).toNumber();
+            drawHare(dc, x, y, dir, (w * 0.045).toNumber());
+        } else if (type == CR_FOX) {
+            var groundY = (h * 0.93).toNumber();
+            var y = groundY;
+            var pounce = false;
+            if (frac > 0.4 && frac < 0.6) {        // mid-screen snow-pounce
+                var pf = (frac - 0.4) / 0.2;
+                y = (groundY - (h * 0.07) * Math.sin(pf * Math.PI)).toNumber();
+                pounce = true;
+            }
+            drawFoxFamily(dc, x, y, dir, pounce, (w * 0.05).toNumber(), 0xE0662A, 0xF4ECE0, 0x2A1A12);
+        } else if (type == CR_ARCTIC_FOX) {
+            var groundY = (h * 0.93).toNumber();
+            drawFoxFamily(dc, x, groundY, dir, false, (w * 0.05).toNumber(), 0xEAF2FA, 0xFFFFFF, 0x9FB2C4);
+        } else if (type == CR_CHICKADEE) {
+            // sky -> snow -> sky: glide down, hop & peck, then flit off.
+            var skyY = (h * 0.34).toNumber();
+            var groundY = (h * 0.90).toNumber();
+            var onGround = false;
+            var y;
+            if (frac < 0.35) {
+                y = (skyY + (groundY - skyY) * (frac / 0.35)).toNumber();
+            } else if (frac < 0.65) {
+                y = groundY;
+                onGround = true;
+            } else {
+                y = (groundY + (skyY - groundY) * ((frac - 0.65) / 0.35)).toNumber();
+            }
+            drawChickadee(dc, x, y, dir, frac, onGround, (w * 0.035).toNumber());
+        } else if (type == CR_WOLF) {
+            var groundY = (h * 0.93).toNumber();
+            var howl = (frac > 0.45 && frac < 0.62);
+            if (howl) {                            // pause mid-crossing to howl
+                var pf = 0.45;
+                x = (dir == 1) ? (-margin + pf * span).toNumber() : (w + margin - pf * span).toNumber();
+            }
+            drawWolf(dc, x, groundY, dir, howl, (w * 0.055).toNumber());
+        } else if (type == CR_STAG) {
+            var groundY = (h * 0.93).toNumber();
+            drawStag(dc, x, groundY, dir, frac, (w * 0.06).toNumber());
+        }
+    }
+
+    // ---- Cardinal (red songbird, flying) ----
+    private function drawCardinal(dc as Dc, x as Number, y as Number, dir as Number, flap as Float, s as Number) as Void {
+        if (s < 8) { s = 8; }
+        cardinalSil(dc, x - 1, y - 1, dir, s, flap, 0x000000);
+        cardinalSil(dc, x + 1, y - 1, dir, s, flap, 0x000000);
+        cardinalSil(dc, x - 1, y + 1, dir, s, flap, 0x000000);
+        cardinalSil(dc, x + 1, y + 1, dir, s, flap, 0x000000);
+        cardinalSil(dc, x, y, dir, s, flap, 0xD4262A);   // crimson
+
+        var hx = (x + dir * s * 0.55).toNumber();
+        var hy = (y - s * 0.35).toNumber();
+        dc.setColor(0x1A1010, Graphics.COLOR_TRANSPARENT);   // black face mask
+        dc.fillCircle((hx + dir * s * 0.1).toNumber(), (hy + s * 0.2).toNumber(), (s * 0.18).toNumber());
+        dc.setColor(0xF2A03A, Graphics.COLOR_TRANSPARENT);   // orange beak
+        dc.fillPolygon([
+            [(hx + dir * s * 0.3).toNumber(), (hy + s * 0.05).toNumber()],
+            [(hx + dir * s * 0.7).toNumber(), (hy + s * 0.2).toNumber()],
+            [(hx + dir * s * 0.3).toNumber(), (hy + s * 0.3).toNumber()]
+        ] as Array<Array>);
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(hx, (hy + s * 0.02).toNumber(), 1);    // eye glint
+    }
+
+    private function cardinalSil(dc as Dc, x as Number, y as Number, dir as Number, s as Number, flap as Float, c as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x, y, (s * 0.5).toNumber());           // body
+        var hx = (x + dir * s * 0.55).toNumber();
+        var hy = (y - s * 0.35).toNumber();
+        dc.fillCircle(hx, hy, (s * 0.32).toNumber());        // head
+        dc.fillPolygon([                                     // crest spike
+            [(hx - dir * s * 0.1).toNumber(), (hy - s * 0.2).toNumber()],
+            [(hx - dir * s * 0.4).toNumber(), (hy - s * 0.75).toNumber()],
+            [(hx + dir * s * 0.15).toNumber(), (hy - s * 0.3).toNumber()]
+        ] as Array<Array>);
+        dc.fillPolygon([                                     // tail
+            [(x - dir * s * 0.4).toNumber(), (y - s * 0.1).toNumber()],
+            [(x - dir * s * 1.3).toNumber(), (y + s * 0.2).toNumber()],
+            [(x - dir * s * 0.4).toNumber(), (y + s * 0.35).toNumber()]
+        ] as Array<Array>);
+        var wTipY = (y - flap * s * 0.7).toNumber();         // wing (flaps)
+        dc.fillPolygon([
+            [x, (y - s * 0.1).toNumber()],
+            [(x - dir * s * 0.2).toNumber(), wTipY],
+            [(x + dir * s * 0.45).toNumber(), (y + s * 0.1).toNumber()]
+        ] as Array<Array>);
+    }
+
+    // ---- Snowy owl (glides across the night sky) ----
+    private function drawOwl(dc as Dc, x as Number, y as Number, dir as Number, flap as Float, s as Number) as Void {
+        if (s < 9) { s = 9; }
+        owlSil(dc, x - 1, y - 1, dir, s, flap, 0x000000);
+        owlSil(dc, x + 1, y - 1, dir, s, flap, 0x000000);
+        owlSil(dc, x - 1, y + 1, dir, s, flap, 0x000000);
+        owlSil(dc, x + 1, y + 1, dir, s, flap, 0x000000);
+        owlSil(dc, x, y, dir, s, flap, 0xF0F4FA);            // pale snowy white
+
+        dc.setColor(0xB8C2CE, Graphics.COLOR_TRANSPARENT);   // a few grey speckles
+        dc.fillCircle((x - s * 0.2).toNumber(), (y + s * 0.1).toNumber(), 1);
+        dc.fillCircle((x + s * 0.2).toNumber(), (y + s * 0.3).toNumber(), 1);
+        dc.fillCircle(x, (y - s * 0.1).toNumber(), 1);
+
+        var hy = (y - s * 0.7).toNumber();
+        dc.setColor(0xF2C03A, Graphics.COLOR_TRANSPARENT);   // big yellow eyes
+        dc.fillCircle((x - s * 0.22).toNumber(), hy, (s * 0.14).toNumber());
+        dc.fillCircle((x + s * 0.22).toNumber(), hy, (s * 0.14).toNumber());
+        dc.setColor(0x1A1410, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle((x - s * 0.22).toNumber(), hy, (s * 0.06).toNumber() + 1);
+        dc.fillCircle((x + s * 0.22).toNumber(), hy, (s * 0.06).toNumber() + 1);
+        dc.setColor(0xF2A03A, Graphics.COLOR_TRANSPARENT);   // beak
+        dc.fillPolygon([
+            [x, (hy + s * 0.12).toNumber()],
+            [(x - s * 0.08).toNumber(), (hy + s * 0.32).toNumber()],
+            [(x + s * 0.08).toNumber(), (hy + s * 0.32).toNumber()]
+        ] as Array<Array>);
+    }
+
+    private function owlSil(dc as Dc, x as Number, y as Number, dir as Number, s as Number, flap as Float, c as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle((x - s * 0.5).toNumber(), (y - s * 0.4).toNumber(), (s * 1.0).toNumber(), (s * 1.1).toNumber(), (s * 0.4).toNumber());  // body
+        dc.fillCircle(x, (y - s * 0.7).toNumber(), (s * 0.55).toNumber());   // big round head
+        var tip = (flap * s * 0.5);                          // broad wings, tips dip slowly
+        dc.fillPolygon([
+            [x, (y - s * 0.2).toNumber()],
+            [(x - s * 1.4).toNumber(), (y - s * 0.1 + tip).toNumber()],
+            [(x - s * 0.3).toNumber(), (y + s * 0.4).toNumber()]
+        ] as Array<Array>);
+        dc.fillPolygon([
+            [x, (y - s * 0.2).toNumber()],
+            [(x + s * 1.4).toNumber(), (y - s * 0.1 + tip).toNumber()],
+            [(x + s * 0.3).toNumber(), (y + s * 0.4).toNumber()]
+        ] as Array<Array>);
+    }
+
+    // ---- Snowshoe hare (bounds across the snow) ----
+    private function drawHare(dc as Dc, x as Number, y as Number, dir as Number, s as Number) as Void {
+        if (s < 8) { s = 8; }
+        hareSil(dc, x - 1, y - 1, dir, s, 0x000000);
+        hareSil(dc, x + 1, y - 1, dir, s, 0x000000);
+        hareSil(dc, x - 1, y + 1, dir, s, 0x000000);
+        hareSil(dc, x + 1, y + 1, dir, s, 0x000000);
+        hareSil(dc, x, y, dir, s, 0xF4FAFF);                 // winter-white coat
+
+        var hx = (x + dir * s * 0.7).toNumber();
+        var hy = (y - s * 0.3).toNumber();
+        dc.setColor(0x2A2A30, Graphics.COLOR_TRANSPARENT);   // eye
+        dc.fillCircle(hx, hy, 1);
+        dc.setColor(0xE6849A, Graphics.COLOR_TRANSPARENT);   // nose
+        dc.fillCircle((hx + dir * s * 0.3).toNumber(), (hy + s * 0.15).toNumber(), 1);
+    }
+
+    private function hareSil(dc as Dc, x as Number, y as Number, dir as Number, s as Number, c as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle((x - s * 0.8).toNumber(), (y - s * 0.5).toNumber(), (s * 1.5).toNumber(), (s * 0.8).toNumber(), (s * 0.4).toNumber());  // body
+        dc.fillCircle((x - dir * s * 0.5).toNumber(), (y - s * 0.1).toNumber(), (s * 0.45).toNumber());   // haunch
+        dc.fillCircle((x + dir * s * 0.7).toNumber(), (y - s * 0.3).toNumber(), (s * 0.35).toNumber());   // head
+        var ex = (x + dir * s * 0.6).toNumber();             // two long ears
+        var ey = (y - s * 0.55).toNumber();
+        dc.fillRoundedRectangle((ex - dir * s * 0.1).toNumber(), (ey - s * 0.7).toNumber(), (s * 0.18).toNumber(), (s * 0.8).toNumber(), (s * 0.09).toNumber());
+        dc.fillRoundedRectangle((ex - dir * s * 0.35).toNumber(), (ey - s * 0.65).toNumber(), (s * 0.18).toNumber(), (s * 0.8).toNumber(), (s * 0.09).toNumber());
+        dc.fillRoundedRectangle((x + dir * s * 0.3).toNumber(), (y + s * 0.15).toNumber(), (s * 0.5).toNumber(), (s * 0.2).toNumber(), (s * 0.1).toNumber());   // tucked feet
+        dc.fillCircle((x - dir * s * 0.95).toNumber(), (y - s * 0.05).toNumber(), (s * 0.2).toNumber());  // tail puff
+    }
+
+    // ---- Fox (red fox by day, arctic fox by night); palette-driven ----
+    private function drawFoxFamily(dc as Dc, x as Number, y as Number, dir as Number, pounce as Boolean, s as Number, body as Number, belly as Number, sock as Number) as Void {
+        if (s < 8) { s = 8; }
+        foxSil(dc, x - 1, y - 1, dir, s, pounce, 0x000000);
+        foxSil(dc, x + 1, y - 1, dir, s, pounce, 0x000000);
+        foxSil(dc, x - 1, y + 1, dir, s, pounce, 0x000000);
+        foxSil(dc, x + 1, y + 1, dir, s, pounce, 0x000000);
+        foxSil(dc, x, y, dir, s, pounce, body);
+
+        dc.setColor(belly, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle((x + dir * s * 0.95).toNumber(), (y - s * 0.1).toNumber(), (s * 0.2).toNumber());   // cheek/chest
+        dc.fillCircle((x - dir * s * 1.5).toNumber(), (y - s * 0.45).toNumber(), (s * 0.22).toNumber());  // white tail tip
+        dc.setColor(sock, Graphics.COLOR_TRANSPARENT);
+        var hx = (x + dir * s * 1.2).toNumber();
+        var hy = (y - s * 0.25).toNumber();
+        dc.fillCircle((hx + dir * s * 0.1).toNumber(), (hy + s * 0.12).toNumber(), 1);   // nose
+        dc.fillCircle((hx - dir * s * 0.2).toNumber(), (hy - s * 0.05).toNumber(), 1);   // eye
+    }
+
+    private function foxSil(dc as Dc, x as Number, y as Number, dir as Number, s as Number, pounce as Boolean, c as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle((x - s * 0.9).toNumber(), (y - s * 0.35).toNumber(), (s * 1.9).toNumber(), (s * 0.7).toNumber(), (s * 0.3).toNumber());  // body
+        dc.setPenWidth((s > 12) ? 3 : 2);                    // legs (tucked during a pounce)
+        var legLen = pounce ? 0.35 : 0.6;
+        var legY2 = (y + s * legLen).toNumber();
+        dc.drawLine((x + dir * s * 0.65).toNumber(), (y + s * 0.2).toNumber(), (x + dir * s * 0.65).toNumber(), legY2);
+        dc.drawLine((x + dir * s * 0.2).toNumber(),  (y + s * 0.2).toNumber(), (x + dir * s * 0.2).toNumber(),  legY2);
+        dc.drawLine((x - dir * s * 0.2).toNumber(),  (y + s * 0.2).toNumber(), (x - dir * s * 0.2).toNumber(),  legY2);
+        dc.drawLine((x - dir * s * 0.65).toNumber(), (y + s * 0.2).toNumber(), (x - dir * s * 0.65).toNumber(), legY2);
+        dc.setPenWidth(1);
+        dc.fillPolygon([                                     // neck + head (snout)
+            [(x + dir * s * 0.6).toNumber(),  (y - s * 0.3).toNumber()],
+            [(x + dir * s * 1.35).toNumber(), (y - s * 0.35).toNumber()],
+            [(x + dir * s * 1.25).toNumber(), (y).toNumber()],
+            [(x + dir * s * 0.6).toNumber(),  (y + s * 0.1).toNumber()]
+        ] as Array<Array>);
+        dc.fillPolygon([                                     // ears
+            [(x + dir * s * 0.75).toNumber(), (y - s * 0.3).toNumber()],
+            [(x + dir * s * 0.7).toNumber(),  (y - s * 0.8).toNumber()],
+            [(x + dir * s * 1.0).toNumber(),  (y - s * 0.35).toNumber()]
+        ] as Array<Array>);
+        dc.fillPolygon([
+            [(x + dir * s * 1.0).toNumber(),  (y - s * 0.3).toNumber()],
+            [(x + dir * s * 1.05).toNumber(), (y - s * 0.8).toNumber()],
+            [(x + dir * s * 1.25).toNumber(), (y - s * 0.35).toNumber()]
+        ] as Array<Array>);
+        dc.fillPolygon([                                     // bushy tail
+            [(x - dir * s * 0.7).toNumber(), (y - s * 0.2).toNumber()],
+            [(x - dir * s * 1.7).toNumber(), (y - s * 0.6).toNumber()],
+            [(x - dir * s * 1.5).toNumber(), (y + s * 0.1).toNumber()],
+            [(x - dir * s * 0.7).toNumber(), (y + s * 0.2).toNumber()]
+        ] as Array<Array>);
+    }
+
+    // ---- Chickadee (flies in, lands and pecks, flits off) ----
+    private function drawChickadee(dc as Dc, x as Number, y as Number, dir as Number, frac as Float, onGround as Boolean, s as Number) as Void {
+        if (s < 7) { s = 7; }
+        var peck = 0.0;
+        var flap = 0.0;
+        if (onGround) {
+            peck = Math.sin(frac * Math.PI * 16.0) * s * 0.2;   // head bobs to peck
+        } else {
+            flap = Math.sin(frac * Math.PI * 11.0);
+        }
+        var flying = !onGround;
+        chickadeeSil(dc, x - 1, y - 1, dir, s, flap, peck, flying, 0x000000);
+        chickadeeSil(dc, x + 1, y - 1, dir, s, flap, peck, flying, 0x000000);
+        chickadeeSil(dc, x - 1, y + 1, dir, s, flap, peck, flying, 0x000000);
+        chickadeeSil(dc, x + 1, y + 1, dir, s, flap, peck, flying, 0x000000);
+        chickadeeSil(dc, x, y, dir, s, flap, peck, flying, 0xC8C0B0);   // buff-grey body
+
+        var hx = (x + dir * s * 0.55).toNumber();
+        var hy = (y - s * 0.35 + peck).toNumber();
+        dc.setColor(0x1A1A1E, Graphics.COLOR_TRANSPARENT);   // black cap
+        dc.fillCircle(hx, (hy - s * 0.15).toNumber(), (s * 0.28).toNumber());
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);   // white cheek
+        dc.fillCircle((hx + dir * s * 0.05).toNumber(), (hy + s * 0.12).toNumber(), (s * 0.16).toNumber());
+        dc.setColor(0x2A2A2E, Graphics.COLOR_TRANSPARENT);   // beak
+        dc.fillPolygon([
+            [(hx + dir * s * 0.25).toNumber(), (hy).toNumber()],
+            [(hx + dir * s * 0.6).toNumber(),  (hy + s * 0.08).toNumber()],
+            [(hx + dir * s * 0.25).toNumber(), (hy + s * 0.16).toNumber()]
+        ] as Array<Array>);
+    }
+
+    private function chickadeeSil(dc as Dc, x as Number, y as Number, dir as Number, s as Number, flap as Float, peck as Float, flying as Boolean, c as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x, y, (s * 0.5).toNumber());           // plump body
+        dc.fillCircle((x + dir * s * 0.55).toNumber(), (y - s * 0.35 + peck).toNumber(), (s * 0.32).toNumber());  // head
+        dc.fillPolygon([                                     // tail
+            [(x - dir * s * 0.3).toNumber(), (y - s * 0.1).toNumber()],
+            [(x - dir * s * 1.1).toNumber(), (y + s * 0.05).toNumber()],
+            [(x - dir * s * 0.3).toNumber(), (y + s * 0.3).toNumber()]
+        ] as Array<Array>);
+        if (flying) {                                        // wing flaps in flight
+            var wTipY = (y - flap * s * 0.6).toNumber();
+            dc.fillPolygon([
+                [x, (y - s * 0.1).toNumber()],
+                [(x - dir * s * 0.1).toNumber(), wTipY],
+                [(x + dir * s * 0.4).toNumber(), (y + s * 0.1).toNumber()]
+            ] as Array<Array>);
+        } else {                                             // folded on the ground
+            dc.fillRoundedRectangle((x - s * 0.3).toNumber(), (y - s * 0.15).toNumber(), (s * 0.6).toNumber(), (s * 0.3).toNumber(), (s * 0.15).toNumber());
+        }
+    }
+
+    // ---- Grey wolf (trots, then pauses mid-crossing to howl) ----
+    private function drawWolf(dc as Dc, x as Number, y as Number, dir as Number, howl as Boolean, s as Number) as Void {
+        if (s < 10) { s = 10; }
+        wolfSil(dc, x - 1, y - 1, dir, s, howl, 0x000000);
+        wolfSil(dc, x + 1, y - 1, dir, s, howl, 0x000000);
+        wolfSil(dc, x - 1, y + 1, dir, s, howl, 0x000000);
+        wolfSil(dc, x + 1, y + 1, dir, s, howl, 0x000000);
+        wolfSil(dc, x, y, dir, s, howl, 0x8A8F99);           // grey coat
+
+        dc.setColor(0xC2C6CE, Graphics.COLOR_TRANSPARENT);   // lighter muzzle
+        if (howl) {
+            dc.fillCircle((x + dir * s * 1.0).toNumber(), (y - s * 1.05).toNumber(), (s * 0.14).toNumber());
+        } else {
+            dc.fillCircle((x + dir * s * 1.3).toNumber(), (y - s * 0.15).toNumber(), (s * 0.14).toNumber());
+        }
+    }
+
+    private function wolfSil(dc as Dc, x as Number, y as Number, dir as Number, s as Number, howl as Boolean, c as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle((x - s * 0.95).toNumber(), (y - s * 0.35).toNumber(), (s * 1.9).toNumber(), (s * 0.7).toNumber(), (s * 0.3).toNumber());  // body
+        dc.setPenWidth((s > 12) ? 3 : 2);                    // legs
+        var legY2 = (y + s * 0.65).toNumber();
+        dc.drawLine((x + dir * s * 0.7).toNumber(),  (y + s * 0.2).toNumber(), (x + dir * s * 0.7).toNumber(),  legY2);
+        dc.drawLine((x + dir * s * 0.25).toNumber(), (y + s * 0.2).toNumber(), (x + dir * s * 0.25).toNumber(), legY2);
+        dc.drawLine((x - dir * s * 0.25).toNumber(), (y + s * 0.2).toNumber(), (x - dir * s * 0.25).toNumber(), legY2);
+        dc.drawLine((x - dir * s * 0.7).toNumber(),  (y + s * 0.2).toNumber(), (x - dir * s * 0.7).toNumber(),  legY2);
+        dc.setPenWidth(1);
+        dc.fillPolygon([                                     // bushy tail (low)
+            [(x - dir * s * 0.8).toNumber(), (y - s * 0.2).toNumber()],
+            [(x - dir * s * 1.7).toNumber(), (y + s * 0.05).toNumber()],
+            [(x - dir * s * 0.8).toNumber(), (y + s * 0.2).toNumber()]
+        ] as Array<Array>);
+        if (howl) {                                          // head raised, muzzle to the sky
+            dc.fillPolygon([
+                [(x + dir * s * 0.6).toNumber(),  (y - s * 0.3).toNumber()],
+                [(x + dir * s * 0.85).toNumber(), (y - s * 1.1).toNumber()],
+                [(x + dir * s * 1.2).toNumber(),  (y - s * 1.05).toNumber()],
+                [(x + dir * s * 0.95).toNumber(), (y - s * 0.2).toNumber()]
+            ] as Array<Array>);
+            dc.fillCircle((x + dir * s * 1.0).toNumber(), (y - s * 1.05).toNumber(), (s * 0.25).toNumber());
+            dc.fillPolygon([                                 // ear back
+                [(x + dir * s * 0.85).toNumber(), (y - s * 1.0).toNumber()],
+                [(x + dir * s * 0.7).toNumber(),  (y - s * 1.4).toNumber()],
+                [(x + dir * s * 1.0).toNumber(),  (y - s * 1.1).toNumber()]
+            ] as Array<Array>);
+        } else {                                             // head forward, lowered
+            dc.fillPolygon([
+                [(x + dir * s * 0.6).toNumber(),  (y - s * 0.3).toNumber()],
+                [(x + dir * s * 1.4).toNumber(),  (y - s * 0.4).toNumber()],
+                [(x + dir * s * 1.35).toNumber(), (y + s * 0.05).toNumber()],
+                [(x + dir * s * 0.6).toNumber(),  (y + s * 0.05).toNumber()]
+            ] as Array<Array>);
+            dc.fillCircle((x + dir * s * 1.3).toNumber(), (y - s * 0.2).toNumber(), (s * 0.28).toNumber());
+            dc.fillPolygon([                                 // ear
+                [(x + dir * s * 1.15).toNumber(), (y - s * 0.4).toNumber()],
+                [(x + dir * s * 1.1).toNumber(),  (y - s * 0.8).toNumber()],
+                [(x + dir * s * 1.35).toNumber(), (y - s * 0.45).toNumber()]
+            ] as Array<Array>);
+        }
+    }
+
+    // ---- Stag (antlered deer; walks across, breath steaming) ----
+    private function drawStag(dc as Dc, x as Number, y as Number, dir as Number, frac as Float, s as Number) as Void {
+        if (s < 10) { s = 10; }
+        stagSil(dc, x - 1, y - 1, dir, s, 0x000000);
+        stagSil(dc, x + 1, y - 1, dir, s, 0x000000);
+        stagSil(dc, x - 1, y + 1, dir, s, 0x000000);
+        stagSil(dc, x + 1, y + 1, dir, s, 0x000000);
+        stagSil(dc, x, y, dir, s, 0x6B4A2E);                 // brown coat
+
+        dc.setColor(0xD8C4A8, Graphics.COLOR_TRANSPARENT);   // pale rump
+        dc.fillCircle((x - dir * s * 0.8).toNumber(), (y - s * 0.05).toNumber(), (s * 0.18).toNumber());
+
+        var bx = (x + dir * s * 1.5).toNumber();             // breath steam puffs
+        var by = (y - s * 1.0).toNumber();
+        dc.setColor(0xDCEAF8, Graphics.COLOR_TRANSPARENT);
+        for (var i = 0; i < 3; i++) {
+            var drift = ((frac * 30.0).toNumber() + i) % 4;
+            dc.fillCircle((bx + dir * (i * s * 0.25)).toNumber(), (by - i * s * 0.12 - drift).toNumber(), (s * 0.1).toNumber());
+        }
+    }
+
+    private function stagSil(dc as Dc, x as Number, y as Number, dir as Number, s as Number, c as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle((x - s * 0.85).toNumber(), (y - s * 0.4).toNumber(), (s * 1.7).toNumber(), (s * 0.7).toNumber(), (s * 0.25).toNumber());  // body
+        dc.setPenWidth((s > 12) ? 3 : 2);                    // long slender legs
+        var legY2 = (y + s * 0.85).toNumber();
+        dc.drawLine((x + dir * s * 0.6).toNumber(),  (y + s * 0.2).toNumber(), (x + dir * s * 0.6).toNumber(),  legY2);
+        dc.drawLine((x + dir * s * 0.25).toNumber(), (y + s * 0.2).toNumber(), (x + dir * s * 0.25).toNumber(), legY2);
+        dc.drawLine((x - dir * s * 0.25).toNumber(), (y + s * 0.2).toNumber(), (x - dir * s * 0.25).toNumber(), legY2);
+        dc.drawLine((x - dir * s * 0.6).toNumber(),  (y + s * 0.2).toNumber(), (x - dir * s * 0.6).toNumber(),  legY2);
+        dc.setPenWidth(1);
+        dc.fillPolygon([                                     // neck (up-forward)
+            [(x + dir * s * 0.55).toNumber(), (y - s * 0.35).toNumber()],
+            [(x + dir * s * 1.1).toNumber(),  (y - s * 1.0).toNumber()],
+            [(x + dir * s * 1.35).toNumber(), (y - s * 0.9).toNumber()],
+            [(x + dir * s * 0.85).toNumber(), (y - s * 0.2).toNumber()]
+        ] as Array<Array>);
+        dc.fillPolygon([                                     // head/muzzle
+            [(x + dir * s * 1.1).toNumber(),  (y - s * 1.05).toNumber()],
+            [(x + dir * s * 1.7).toNumber(),  (y - s * 0.95).toNumber()],
+            [(x + dir * s * 1.35).toNumber(), (y - s * 0.75).toNumber()]
+        ] as Array<Array>);
+        dc.setPenWidth((s > 12) ? 3 : 2);                    // branching antlers
+        var ax = (x + dir * s * 1.15).toNumber();
+        var ay = (y - s * 1.05).toNumber();
+        dc.drawLine(ax, ay, (ax - dir * s * 0.1).toNumber(), (ay - s * 0.8).toNumber());
+        dc.drawLine((ax - dir * s * 0.1).toNumber(), (ay - s * 0.4).toNumber(), (ax + dir * s * 0.3).toNumber(), (ay - s * 0.6).toNumber());
+        dc.drawLine((ax - dir * s * 0.1).toNumber(), (ay - s * 0.8).toNumber(), (ax + dir * s * 0.25).toNumber(), (ay - s * 1.0).toNumber());
+        dc.drawLine((ax + dir * s * 0.2).toNumber(), ay, (ax + dir * s * 0.35).toNumber(), (ay - s * 0.7).toNumber());
+        dc.drawLine((ax + dir * s * 0.35).toNumber(), (ay - s * 0.35).toNumber(), (ax + dir * s * 0.7).toNumber(), (ay - s * 0.5).toNumber());
+        dc.setPenWidth(1);
+        dc.fillPolygon([                                     // short tail
+            [(x - dir * s * 0.8).toNumber(),  (y - s * 0.3).toNumber()],
+            [(x - dir * s * 1.05).toNumber(), (y - s * 0.1).toNumber()],
+            [(x - dir * s * 0.8).toNumber(),  (y + s * 0.05).toNumber()]
+        ] as Array<Array>);
+    }
+
     // ----------------------------------------------------------- Sun times
 
     // Recompute today's local sunrise/sunset from the watch's last-known
@@ -1199,7 +1801,13 @@ class SnowfallView extends WatchUi.WatchFace {
             mSunrise = 7.5;
             mSunset = 16.5;
             mSunValid = false;
+            mSunLastTry = -10000;   // retry immediately on the first frame of a new day
         }
+        // Until we have a valid fix, throttle the (heavy) location + NOAA trig
+        // retries to once per 60 s instead of re-running them every frame. (Fix #7)
+        var nowSec = Time.now().value();
+        if ((nowSec - mSunLastTry) < 60) { return; }
+        mSunLastTry = nowSec;
         var loc = getLocationDeg();
         if (loc == null) { return; }
         var offset = System.getClockTime().timeZoneOffset.toFloat() / 3600.0;
@@ -1285,16 +1893,22 @@ class SnowfallView extends WatchUi.WatchFace {
         return (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
     }
 
+    // Bounded modulo normalizers with a non-finite guard, so a stray NaN/Infinity
+    // from the sun trig can never spin a subtract-in-a-loop forever (hard freeze).
     private function normDeg(a as Float) as Float {
-        while (a < 0.0) { a += 360.0; }
-        while (a >= 360.0) { a -= 360.0; }
-        return a;
+        if (!(a > -1.0e9 && a < 1.0e9)) { return 0.0; }  // guard NaN / Infinity
+        var r = a - 360.0 * Math.floor(a / 360.0);
+        if (r < 0.0) { r += 360.0; }
+        if (r >= 360.0) { r -= 360.0; }
+        return r;
     }
 
     private function normHour(a as Float) as Float {
-        while (a < 0.0) { a += 24.0; }
-        while (a >= 24.0) { a -= 24.0; }
-        return a;
+        if (!(a > -1.0e9 && a < 1.0e9)) { return 0.0; }  // guard NaN / Infinity
+        var r = a - 24.0 * Math.floor(a / 24.0);
+        if (r < 0.0) { r += 24.0; }
+        if (r >= 24.0) { r -= 24.0; }
+        return r;
     }
 
     // ------------------------------------------------------------ Color helpers
@@ -1340,14 +1954,16 @@ class SnowfallView extends WatchUi.WatchFace {
         // sunrise/sunset so dawn glow, daylight, and the cold-peach sunset land
         // at the true times. Otherwise fall back to the fixed winter schedule.
         if (sr > 1.6 && ss < 22.4 && (ss - sr) > 4.0) {
+            // Only the keyframe HOURS depend on the real sun times, so just this
+            // array is built per frame; the color tables are hoisted consts.
             var mid = (sr + ss) / 2.0;
             hours        = [0.0, sr - 1.5, sr, sr + 1.5, mid, ss - 1.5, ss, ss + 1.5, 24.0];
-            topColors    = [0x05060F, 0x121028, 0x6E7CA6, 0x9DC2E0, 0xB8D2E8, 0x8FA6CE, 0x7E8EBE, 0x3A3A6A, 0x05060F];
-            bottomColors = [0x0A0C1A, 0x2A2548, 0xC890A8, 0xE8F2FA, 0xF0F6FB, 0xF0D0B0, 0xE8A878, 0x6A4A7A, 0x0A0C1A];
+            topColors    = SKY_TOP_REAL;
+            bottomColors = SKY_BOTTOM_REAL;
         } else {
-            hours        = [0.0, 6.0, 8.0, 11.0, 15.0, 16.5, 18.0, 20.0, 24.0];
-            topColors    = [0x05060F, 0x121028, 0x6E7CA6, 0x9DC2E0, 0xB8D2E8, 0x7E8EBE, 0x3A3A6A, 0x0F1228, 0x05060F];
-            bottomColors = [0x0A0C1A, 0x2A2548, 0xC890A8, 0xE8F2FA, 0xF0F6FB, 0xE8A878, 0x6A4A7A, 0x2A2548, 0x0A0C1A];
+            hours        = SKY_HOURS_FB;
+            topColors    = SKY_TOP_FB;
+            bottomColors = SKY_BOTTOM_FB;
         }
 
         var idx = 0;
@@ -1363,6 +1979,47 @@ class SnowfallView extends WatchUi.WatchFace {
         var cBottom = lerpColor(bottomColors[idx], bottomColors[idx+1], frac);
 
         return [cTop, cBottom] as Array<Number>;
+    }
+
+    // Render the AMOLED sky gradient into a reusable BufferedBitmap and return it,
+    // or null if buffers aren't supported / allocation failed (caller renders
+    // directly). Allocated ONCE; only repainted in place when the gradient colors
+    // change, so the per-row fill loop runs ~once/minute and we never churn the
+    // graphics pool by recreating the buffer. (Fix #9 / #12)
+    private function getSkyBitmap(w as Number, skyH as Number, cTop as Number, cBottom as Number) as Graphics.BufferedBitmap or Null {
+        if (!(Graphics has :createBufferedBitmap)) { return null; }
+        var bmp = (mSkyBufRef != null) ? mSkyBufRef.get() : null;  // null if pool reclaimed it
+        if (bmp == null || w != mSkyKeyW || skyH != mSkyKeyH) {    // allocate ONCE (or after reclaim/resize)
+            try {
+                var ref = Graphics.createBufferedBitmap({ :width => w, :height => skyH });
+                if (ref == null) { return null; }
+                mSkyBufRef = ref;
+                bmp = ref.get();
+                if (bmp == null) { return null; }
+            } catch (e) {
+                mSkyBufRef = null;
+                return null;
+            }
+            mSkyKeyW = w;
+            mSkyKeyH = skyH;
+            mSkyKeyTop = cTop + 1;   // invalidate so the fill below runs
+        }
+        if (cTop != mSkyKeyTop || cBottom != mSkyKeyBottom) {      // repaint IN PLACE
+            drawSkyGradientDirect(bmp.getDc(), w, skyH, cTop, cBottom);
+            mSkyKeyTop = cTop;
+            mSkyKeyBottom = cBottom;
+        }
+        return bmp;
+    }
+
+    private function drawSkyGradientDirect(dc as Dc, w as Number, skyH as Number, cTop as Number, cBottom as Number) as Void {
+        var step = 4;
+        for (var y = 0; y < skyH; y += step) {
+            var frac = y.toFloat() / skyH.toFloat();
+            var c = lerpColor(cTop, cBottom, frac);
+            dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(0, y, w, step);
+        }
     }
 
     // ----------------------------------------------------------- Lifecycle
@@ -1386,7 +2043,7 @@ class SnowfallView extends WatchUi.WatchFace {
                 var conditions = Weather.getCurrentConditions();
                 if (conditions != null && conditions.temperature != null) {
                     var temp = conditions.temperature;
-                    var settings = System.getDeviceSettings();
+                    var settings = (mSettings != null) ? mSettings : System.getDeviceSettings();
                     var isImperial = (settings has :temperatureUnits) && (settings.temperatureUnits != System.UNIT_METRIC);
                     if (isImperial) {
                         temp = (temp * 9.0 / 5.0 + 32.0).toNumber();
@@ -1408,15 +2065,27 @@ class SnowfallView extends WatchUi.WatchFace {
             dc.drawText(x, y, font, text, justify);
             return;
         }
-        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x - 1, y - 1, font, text, justify);
-        dc.drawText(x + 1, y - 1, font, text, justify);
-        dc.drawText(x - 1, y + 1, font, text, justify);
-        dc.drawText(x + 1, y + 1, font, text, justify);
-        dc.drawText(x - 1, y,     font, text, justify);
-        dc.drawText(x + 1, y,     font, text, justify);
-        dc.drawText(x,     y - 1, font, text, justify);
-        dc.drawText(x,     y + 1, font, text, justify);
+        // Outline pass count scales with adaptive quality (Fix #13): 8 offsets at
+        // full detail, down to 0 (no outline) on hardware that can't keep up.
+        var passes = (mQuality >= 3) ? 8 : (mQuality == 2) ? 4 : (mQuality == 1) ? 2 : 0;
+        if (passes > 0) {
+            dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
+            if (passes >= 4) {                       // 4 diagonal corners
+                dc.drawText(x - 1, y - 1, font, text, justify);
+                dc.drawText(x + 1, y - 1, font, text, justify);
+                dc.drawText(x - 1, y + 1, font, text, justify);
+                dc.drawText(x + 1, y + 1, font, text, justify);
+            }
+            if (passes >= 8) {                       // + 4 cardinals
+                dc.drawText(x - 1, y,     font, text, justify);
+                dc.drawText(x + 1, y,     font, text, justify);
+                dc.drawText(x,     y - 1, font, text, justify);
+                dc.drawText(x,     y + 1, font, text, justify);
+            } else if (passes == 2) {                // light 2-pass drop outline
+                dc.drawText(x + 1, y + 1, font, text, justify);
+                dc.drawText(x - 1, y - 1, font, text, justify);
+            }
+        }
         dc.setColor(textColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, font, text, justify);
     }
@@ -1486,12 +2155,48 @@ class SnowfallView extends WatchUi.WatchFace {
         }
     }
 
-    // Low-power partial update called once per second in sleep mode.
-    // Redraw only when the minute changes to stay within AMOLED power budget.
+    // Low-power partial update, called up to once per second in sleep mode.
+    // Throttled to once per minute, and on AMOLED always-on it redraws only the
+    // central time/date band (clipped) instead of the whole scene, keeping it
+    // well inside the partial-update budget. (Fix #1 / #8)
     function onPartialUpdate(dc as Dc) as Void {
-        var min = System.getClockTime().min;
+        var clock = System.getClockTime();
+        var min = clock.min;
         if (min == mLastMin) { return; }
         mLastMin = min;
-        onUpdate(dc);
+
+        var settings = System.getDeviceSettings();
+        var hasBurnIn = (settings has :requiresBurnInProtection) && settings.requiresBurnInProtection;
+        var aod = hasBurnIn && mIsSleep;
+
+        // MIP (or no clip support): the sleep frame is the FULL colour scene and
+        // MIP also calls onPartialUpdate, so a clipped clear would paint a black
+        // band across the middle every minute. Keep the original full redraw. (Fix #8)
+        if (!aod || !(dc has :setClip)) {
+            onUpdate(dc);
+            return;
+        }
+
+        // AMOLED always-on: clip to just the time/date band and redraw that.
+        mLowPower = true;
+        mFlatGlobes = false;
+        mSettings = settings;   // cache for drawTime / drawDate this frame
+        mClock = clock;
+        mActInfo = null;
+
+        var shift = computeBurnInShift();   // same anti-burn-in nudge as onUpdate
+        var cx = mCenterX + shift[0];
+        var cy = mCenterY + shift[1];
+
+        var clipY = (mHeight * 0.30).toNumber();
+        var clipH = (mHeight * 0.34).toNumber();
+        dc.setClip(0, clipY, mWidth, clipH);
+
+        dc.setColor(BG_COLOR, BG_COLOR);
+        dc.clear();
+        drawTime(dc, cx, cy - (mHeight * 0.05).toNumber());
+        if (mShowDate) { drawDate(dc, cx, cy + (mHeight * 0.06).toNumber()); }
+
+        if (dc has :clearClip) { dc.clearClip(); }
     }
 }
