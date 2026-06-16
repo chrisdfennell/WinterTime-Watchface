@@ -1,6 +1,12 @@
 # Snowfall Watch Face
- 
-A premium, winter alpine themed **digital watch face** for the **Garmin Fenix 8 and tactix 8**, written in Monkey C for Connect IQ.
+
+![Snowfall — winter alpine watch face](assets/hero_image.png)
+
+A premium, winter alpine themed **digital watch face** for **Garmin** watches, written in Monkey C for Connect IQ. Originally built for the **Fenix 8 / tactix 8**, it now runs on every Connect IQ 4.0+ round watch (see [Hardware / scaling](#hardware--scaling)).
+
+<p align="center">
+  <img src="assets/screen_active.png" alt="Snowfall active render" width="320">
+</p>
 
 Snowfall brings a crisp, serene, and beautiful winter aesthetic to your watch:
  

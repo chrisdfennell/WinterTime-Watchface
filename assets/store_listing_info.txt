@@ -27,9 +27,9 @@ FEATURES & DETAILS
 
 BUILT FOR YOUR DISPLAY
 Snowfall adapts to your panel:
-• AMOLED (Fenix 8 / tactix 8 / quatix 8 and Fenix 8 Pro): smooth gradient resource fills, specular highlights, and active background illumination.
-• MIP / Solar (tactix 8 Solar, Fenix 8 Solar): high-contrast flat fills and optimized backdrops tuned for maximum sunlight readability.
-Everything is laid out relative to your screen, so it looks right on every supported case size.
+• AMOLED (Fenix 8 / tactix 8 / Fenix 8 Pro, Forerunner 965/970, Venu, epix, Instinct 3 AMOLED, and more): smooth gradient resource fills, specular highlights, and active background illumination.
+• MIP / Solar (Fenix 7, Fenix 8 Solar, Forerunner 255/955, Instinct, and more): high-contrast flat fills and optimized backdrops tuned for maximum sunlight readability.
+Everything is laid out relative to your screen, with correctly-sized fonts baked for every resolution, so it looks right on every supported case size — from 166px Instinct panels up to 454px flagships.
 
 ALWAYS-ON FRIENDLY
 On AMOLED, the always-on display switches to a burn-in-safe variant — dim grey time/date, thin outline representations of the battery metrics, steps progress outline, and no visual fills or background animations. All lit pixels are shifted a few pixels each minute. MIP panels always show the full face.
@@ -44,7 +44,7 @@ PRIVACY
 Snowfall uses only the SensorHistory permission (to read Body Battery). It reads heart rate and last-known location on-device to show your BPM and compute local sunrise/sunset; it does not collect or transmit any data off your watch.
 
 SUPPORTED DEVICES
-tactix 8 (AMOLED & Solar), Fenix 8 (43/47/51mm AMOLED), Fenix 8 Solar, Fenix 8 Pro, quatix 8, Forerunner 965.
+Every Connect IQ 4.0+ round watch, including: Forerunner 165, 255/255S, 265/265S, 570, 955, 965, 970; fenix 7 / 7S / 7X (incl. Pro), fenix 8 (AMOLED & Solar), fenix E; epix 2 / epix Pro (42/47/51mm); enduro 3; Venu 2 / 2S / 2 Plus, Venu 3 / 3S, Venu 4; Vivoactive 5 / 6; Instinct 3 (AMOLED & Solar), Instinct E, Instinct Crossover; Approach S50 / S70; Descent G2 / Mk3; D2 Air X10 / Mach 1 / Mach 2; MARQ 2 / Aviator. (Square/rectangular Venu Sq 2 and Venu X1 are not supported — the circular layout is built for round screens.)
 
 Equip Snowfall, and take a moment in the snow.
 
