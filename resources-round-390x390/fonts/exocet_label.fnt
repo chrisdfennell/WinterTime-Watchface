@@ -1,0 +1,50 @@
+info face="exocet_label" size=21 bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=1,1 outline=0
+common lineHeight=29 base=23 scaleW=128 scaleH=128 pages=1 packed=0 alphaChnl=1 redChnl=4 greenChnl=4 blueChnl=4
+page id=0 file="exocet_label.png"
+chars count=45
+char id=65 x=2 y=2 width=13 height=15 xoffset=0 yoffset=8 xadvance=13 page=0 chnl=15
+char id=66 x=17 y=2 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=67 x=30 y=2 width=13 height=15 xoffset=0 yoffset=8 xadvance=13 page=0 chnl=15
+char id=68 x=45 y=2 width=14 height=15 xoffset=0 yoffset=8 xadvance=14 page=0 chnl=15
+char id=69 x=61 y=2 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=70 x=74 y=2 width=10 height=15 xoffset=0 yoffset=8 xadvance=10 page=0 chnl=15
+char id=71 x=86 y=2 width=14 height=15 xoffset=0 yoffset=8 xadvance=14 page=0 chnl=15
+char id=72 x=102 y=2 width=14 height=15 xoffset=0 yoffset=8 xadvance=14 page=0 chnl=15
+char id=73 x=118 y=2 width=5 height=15 xoffset=0 yoffset=8 xadvance=5 page=0 chnl=15
+char id=74 x=2 y=19 width=7 height=15 xoffset=0 yoffset=8 xadvance=7 page=0 chnl=15
+char id=75 x=11 y=19 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=76 x=24 y=19 width=10 height=15 xoffset=0 yoffset=8 xadvance=10 page=0 chnl=15
+char id=77 x=36 y=19 width=18 height=15 xoffset=0 yoffset=8 xadvance=18 page=0 chnl=15
+char id=78 x=56 y=19 width=15 height=15 xoffset=0 yoffset=8 xadvance=15 page=0 chnl=15
+char id=79 x=73 y=19 width=16 height=15 xoffset=0 yoffset=8 xadvance=16 page=0 chnl=15
+char id=80 x=91 y=19 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=81 x=104 y=19 width=16 height=17 xoffset=0 yoffset=8 xadvance=16 page=0 chnl=15
+char id=82 x=2 y=38 width=12 height=15 xoffset=0 yoffset=8 xadvance=12 page=0 chnl=15
+char id=83 x=16 y=38 width=10 height=15 xoffset=0 yoffset=8 xadvance=10 page=0 chnl=15
+char id=84 x=28 y=38 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=85 x=41 y=38 width=14 height=15 xoffset=0 yoffset=8 xadvance=14 page=0 chnl=15
+char id=86 x=57 y=38 width=13 height=15 xoffset=0 yoffset=8 xadvance=13 page=0 chnl=15
+char id=87 x=72 y=38 width=19 height=15 xoffset=0 yoffset=8 xadvance=19 page=0 chnl=15
+char id=88 x=93 y=38 width=12 height=15 xoffset=0 yoffset=8 xadvance=12 page=0 chnl=15
+char id=89 x=107 y=38 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=90 x=2 y=55 width=12 height=15 xoffset=0 yoffset=8 xadvance=12 page=0 chnl=15
+char id=48 x=16 y=55 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=49 x=29 y=55 width=7 height=15 xoffset=0 yoffset=8 xadvance=7 page=0 chnl=15
+char id=50 x=38 y=55 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=51 x=51 y=55 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=52 x=64 y=55 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=53 x=77 y=55 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=54 x=90 y=55 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=55 x=103 y=55 width=10 height=15 xoffset=0 yoffset=8 xadvance=10 page=0 chnl=15
+char id=56 x=115 y=55 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=57 x=2 y=72 width=11 height=15 xoffset=0 yoffset=8 xadvance=11 page=0 chnl=15
+char id=32 x=15 y=72 width=6 height=0 xoffset=0 yoffset=23 xadvance=6 page=0 chnl=15
+char id=44 x=23 y=72 width=5 height=5 xoffset=0 yoffset=21 xadvance=5 page=0 chnl=15
+char id=46 x=30 y=72 width=5 height=2 xoffset=0 yoffset=21 xadvance=5 page=0 chnl=15
+char id=58 x=37 y=72 width=5 height=11 xoffset=0 yoffset=12 xadvance=5 page=0 chnl=15
+char id=37 x=44 y=72 width=16 height=15 xoffset=0 yoffset=8 xadvance=16 page=0 chnl=15
+char id=124 x=62 y=72 width=5 height=21 xoffset=0 yoffset=7 xadvance=5 page=0 chnl=15
+char id=45 x=69 y=72 width=8 height=7 xoffset=0 yoffset=16 xadvance=8 page=0 chnl=15
+char id=8226 x=79 y=72 width=8 height=10 xoffset=0 yoffset=13 xadvance=8 page=0 chnl=15
+char id=176 x=89 y=72 width=8 height=15 xoffset=0 yoffset=8 xadvance=8 page=0 chnl=15
+kernings count=0

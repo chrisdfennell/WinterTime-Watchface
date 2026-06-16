@@ -5,12 +5,10 @@ Generate Connect IQ bitmap fonts (.fnt + .png) from TrueType fonts, per resoluti
 Connect IQ's <font> resource consumes an AngelCode BMFont (text .fnt) plus a PNG
 glyph atlas - it cannot rasterize a .ttf at build time, and bitmap fonts do NOT
 scale. So we bake a separate set for each panel size and let monkey.jungle pick the
-right one via device resourcePath:
-
-    454x454  -> resources/fonts                  (base / AMOLED 47-51mm, Pro)
-    416x416  -> resources-round-416x416/fonts     (fenix 8 43mm AMOLED)
-    280x280  -> resources-round-280x280/fonts     (tactix/fenix 8 Solar 51mm, MIP)
-    260x260  -> resources-round-260x260/fonts     (fenix 8 Solar 47mm, MIP)
+right one via device resourcePath. The base 454 set lives in resources/fonts; every
+other distinct panel size used by a product in manifest.xml gets an override folder
+(see TARGETS below). Fonts scale by min(width, height) / 454; only round panels are
+targeted (square/rectangular Venu Sq 2 / Venu X1 are excluded).
 
 Glyphs are rendered white with coverage in the alpha channel so dc.setColor() tints
 the text. Sizes are defined at the 454 base and scaled to each target.
@@ -35,12 +33,21 @@ FONTS = [
     {"name": "exocet_label", "ttf": "SegoeUILight.ttf", "size": 24, "chars": ALPHA + DIGITS + " ,.:%|-•°"},
 ]
 
-# Each target panel and where its font set lives.
+# Each target panel (width, height) and where its font set lives. Fonts are scaled
+# by min(w, h) / 454 so they fit the shorter axis on non-square (rectangular) panels.
+# 454x454 is the base set in resources/fonts; every other distinct panel size used by
+# a product in manifest.xml gets its own override folder, selected in monkey.jungle.
 TARGETS = [
-    (454, "resources/fonts"),
-    (416, "resources-round-416x416/fonts"),
-    (280, "resources-round-280x280/fonts"),
-    (260, "resources-round-260x260/fonts"),
+    (454, 454, "resources/fonts"),                  # fenix8 47/51mm, Pro, fr965/970, venu3/445, epix2pro51, fr57047, approachs7047, d2mach2, descentmk351
+    (416, 416, "resources-round-416x416/fonts"),    # fenix8 43mm, fr265, fenixe, epix2, epix2pro47, venu2/2plus, d2airx10/mach1, instinct3amoled50
+    (390, 390, "resources-round-390x390/fonts"),    # fr165, fr57042, epix2pro42, venu3s/441, vivoactive5/6, instinct3amoled45/crossover, marq2, approachs50/7042, descentg2/mk343
+    (360, 360, "resources-round-360x360/fonts"),    # fr265s, venu2s
+    (280, 280, "resources-round-280x280/fonts"),    # fenix7x(pro), fenix8solar51, enduro3
+    (260, 260, "resources-round-260x260/fonts"),    # fr255(m), fr955, fenix7(pro), fenix8solar47
+    (240, 240, "resources-round-240x240/fonts"),    # fenix7s(pro)
+    (218, 218, "resources-round-218x218/fonts"),    # fr255s(m)
+    (176, 176, "resources-round-176x176/fonts"),    # instinct3solar45, instincte45
+    (166, 166, "resources-round-166x166/fonts"),    # instincte40
 ]
 
 FONTS_XML = (
@@ -119,11 +126,11 @@ def gen(spec, size, outdir):
 
 
 if __name__ == "__main__":
-    for res, reldir in TARGETS:
+    for w, h, reldir in TARGETS:
         outdir = os.path.join(ROOT, reldir)
         os.makedirs(outdir, exist_ok=True)
-        scale = res / float(BASE_RES)
-        print("== %dpx -> %s ==" % (res, reldir))
+        scale = min(w, h) / float(BASE_RES)
+        print("== %dx%d -> %s ==" % (w, h, reldir))
         for spec in FONTS:
             size = max(8, int(round(spec["size"] * scale)))
             s, aw, ah = gen(spec, size, outdir)

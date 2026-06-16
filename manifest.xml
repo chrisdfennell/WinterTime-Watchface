@@ -1,19 +1,18 @@
 <iq:manifest version="3" xmlns:iq="http://www.garmin.com/xml/connectiq">
     <!--
-        Snowfall - a winter alpine watch face for the Garmin tactix 8.
+        Snowfall - a winter alpine watch face. Originally built for the Garmin
+        tactix 8 / Fenix 8 (AMOLED), now targeting CIQ 4.0+ round watches that
+        support watch faces. Square/rectangular panels (Venu Sq 2, Venu X1) are
+        excluded - the circular layout is designed for round screens. The face is
+        laid out relative to
+        dc.getWidth()/getHeight() and the screen center, so it scales across all
+        panel sizes; tools/gen_fonts.py bakes a correctly-sized bitmap font set for
+        each distinct resolution and monkey.jungle maps every product to its set.
 
-        The tactix 8 runs on the Fenix 8 (AMOLED) platform. There is no dedicated
-        "tactix8" product id in the Connect IQ SDK, so we target the Fenix 8 AMOLED
-        products that share the exact same hardware/firmware/resolution:
-            fenix847mm    -> 454x454 (51mm case)
-            fenix843mm    -> 416x416 (47mm case)
-            fenix8pro47mm -> 454x454 (Fenix 8 Pro, same panel)
-        The lower-resolution Fenix 8 Solar (MIP) variants are included too so the
-        face still installs on those watches; everything is laid out relative to the
-        screen size so it scales cleanly.
-
-        The Forerunner 965 and 970 share the same 454x454 AMOLED panel as the
-        47/51mm Fenix 8, so they use the base 454 resource set with no override.
+        Device families below mirror the broad coverage of the Tamawatchi project
+        (Forerunner, fenix/epix/enduro, Venu/Vivoactive, Instinct, and the golf /
+        dive / aviation / MARQ specialty watches). Edge bike computers and handheld
+        GPS units are excluded (they are not watches / do not run watch faces).
 
         minApiLevel 4.0.0 guarantees vector fonts (3.4+) and the Body Battery
         SensorHistory API (4.0+). All optional features are still guarded with
@@ -21,13 +20,73 @@
     -->
     <iq:application id="d353bcc4-f3de-4b13-93d8-6adb176564b6" type="watchface" name="@Strings.AppName" entry="SnowfallApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="4.0.0">
         <iq:products>
-            <iq:product id="fenix847mm"/>
-            <iq:product id="fenix843mm"/>
-            <iq:product id="fenix8pro47mm"/>
-            <iq:product id="fenix8solar51mm"/>
-            <iq:product id="fenix8solar47mm"/>
+            <!-- Forerunner -->
+            <iq:product id="fr165"/>
+            <iq:product id="fr165m"/>
+            <iq:product id="fr255"/>
+            <iq:product id="fr255m"/>
+            <iq:product id="fr255s"/>
+            <iq:product id="fr255sm"/>
+            <iq:product id="fr265"/>
+            <iq:product id="fr265s"/>
+            <iq:product id="fr57042mm"/>
+            <iq:product id="fr57047mm"/>
+            <iq:product id="fr955"/>
             <iq:product id="fr965"/>
             <iq:product id="fr970"/>
+
+            <!-- fenix / epix / enduro -->
+            <iq:product id="fenix7"/>
+            <iq:product id="fenix7pro"/>
+            <iq:product id="fenix7pronowifi"/>
+            <iq:product id="fenix7s"/>
+            <iq:product id="fenix7spro"/>
+            <iq:product id="fenix7x"/>
+            <iq:product id="fenix7xpro"/>
+            <iq:product id="fenix7xpronowifi"/>
+            <iq:product id="fenix843mm"/>
+            <iq:product id="fenix847mm"/>
+            <iq:product id="fenix8pro47mm"/>
+            <iq:product id="fenix8solar47mm"/>
+            <iq:product id="fenix8solar51mm"/>
+            <iq:product id="fenixe"/>
+            <iq:product id="epix2"/>
+            <iq:product id="epix2pro42mm"/>
+            <iq:product id="epix2pro47mm"/>
+            <iq:product id="epix2pro51mm"/>
+            <iq:product id="enduro3"/>
+
+            <!-- Venu / Vivoactive -->
+            <iq:product id="venu2"/>
+            <iq:product id="venu2plus"/>
+            <iq:product id="venu2s"/>
+            <iq:product id="venu3"/>
+            <iq:product id="venu3s"/>
+            <iq:product id="venu441mm"/>
+            <iq:product id="venu445mm"/>
+            <iq:product id="vivoactive5"/>
+            <iq:product id="vivoactive6"/>
+
+            <!-- Instinct -->
+            <iq:product id="instinct3amoled45mm"/>
+            <iq:product id="instinct3amoled50mm"/>
+            <iq:product id="instinct3solar45mm"/>
+            <iq:product id="instinctcrossoveramoled"/>
+            <iq:product id="instincte40mm"/>
+            <iq:product id="instincte45mm"/>
+
+            <!-- Specialty: golf (Approach), dive (Descent), aviation (D2), MARQ -->
+            <iq:product id="approachs50"/>
+            <iq:product id="approachs7042mm"/>
+            <iq:product id="approachs7047mm"/>
+            <iq:product id="d2airx10"/>
+            <iq:product id="d2mach1"/>
+            <iq:product id="d2mach2"/>
+            <iq:product id="descentg2"/>
+            <iq:product id="descentmk343mm"/>
+            <iq:product id="descentmk351mm"/>
+            <iq:product id="marq2"/>
+            <iq:product id="marq2aviator"/>
         </iq:products>
         <iq:permissions>
             <iq:uses-permission id="SensorHistory"/>

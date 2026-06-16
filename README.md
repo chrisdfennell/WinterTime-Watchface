@@ -26,18 +26,34 @@ Snowfall brings a crisp, serene, and beautiful winter aesthetic to your watch:
 
 ## Hardware / scaling
 
-The project targets the Fenix 8 and tactix 8 platforms. Connect IQ has no dedicated `tactix8` product id, so the project targets the Fenix 8 AMOLED and Solar products:
+Originally built for the tactix 8 / Fenix 8, Snowfall now targets **every Connect IQ 4.0+ round watch that supports watch faces**. The full product list lives in [manifest.xml](manifest.xml); the families covered are:
 
-| Product id      | Resolution | Case            | Panel Type |
-|-----------------|------------|-----------------|------------|
-| `fenix847mm`    | 454×454    | tactix 8 51mm   | AMOLED     |
-| `fenix843mm`    | 416×416    | tactix 8 47mm   | AMOLED     |
-| `fenix8pro47mm` | 454×454    | Fenix 8 Pro     | AMOLED     |
-| `fenix8solar51mm` / `fenix8solar47mm` | 280/260 | Fenix 8 Solar | MIP (Solar) |
-| `fr965`         | 454×454    | Forerunner 965  | AMOLED     |
-| `fr970`         | 454×454    | Forerunner 970  | AMOLED     |
+- **Forerunner** — 165, 255 (incl. S/Music), 265 / 265S, 570, 955, **965**, **970**
+- **fenix / epix / enduro** — fenix 7 (S/X, Pro), fenix 8 (AMOLED + Solar), fenix E, epix 2 / Pro (42/47/51mm), enduro 3
+- **Venu / Vivoactive** — Venu 2 / 2S / 2 Plus, Venu 3 / 3S, Venu 4 (41/45mm), Vivoactive 5 / 6
+- **Instinct** — Instinct 3 (AMOLED 45/50mm, Solar 45mm), Instinct E (40/45mm), Instinct Crossover (AMOLED)
+- **Specialty** — Approach S50 / S70 (golf), Descent G2 / Mk3 (dive), D2 Air X10 / Mach 1 / Mach 2 (aviation), MARQ 2 / Aviator
 
-Everything is laid out in percentages of `dc.getWidth()/getHeight()` and the screen center, so it scales cleanly across all of these resolutions.
+Edge bike computers and handheld GPS units are excluded (not watches), and the **square/rectangular panels (Venu Sq 2, Venu X1) are excluded too** — the circular layout is designed for round screens.
+
+### How it scales
+
+Everything is laid out in percentages of `dc.getWidth()/getHeight()` and the screen center, so the same source renders across every panel. Because bitmap fonts don't scale, [tools/gen_fonts.py](tools/gen_fonts.py) bakes a correctly-sized font set for each distinct resolution and [monkey.jungle](monkey.jungle) maps every product to the right one:
+
+| Resolution | Set                          | Example devices |
+|------------|------------------------------|-----------------|
+| 454×454    | `resources/` (base)          | Fenix 8 47/51mm, FR965/970, Venu 3, epix 2 Pro 51mm |
+| 416×416    | `resources-round-416x416/`   | Fenix 8 43mm, FR265, epix 2, Venu 2 |
+| 390×390    | `resources-round-390x390/`   | FR165, Venu 3S, Vivoactive 5/6, Instinct 3 AMOLED 45mm |
+| 360×360    | `resources-round-360x360/`   | FR265S, Venu 2S |
+| 280×280    | `resources-round-280x280/`   | Fenix 7X, Fenix 8 Solar 51mm, enduro 3 |
+| 260×260    | `resources-round-260x260/`   | FR255/955, Fenix 7, Fenix 8 Solar 47mm |
+| 240×240    | `resources-round-240x240/`   | Fenix 7S |
+| 218×218    | `resources-round-218x218/`   | FR255S |
+| 176×176    | `resources-round-176x176/`   | Instinct 3 Solar 45mm, Instinct E 45mm |
+| 166×166    | `resources-round-166x166/`   | Instinct E 40mm |
+
+Re-run `python tools/gen_fonts.py` after changing font sizes or adding a new resolution. Fonts scale by `min(width, height)` so they fit the shorter axis on rectangular panels.
 
 ## Always-on display
 

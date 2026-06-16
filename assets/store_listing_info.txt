@@ -52,16 +52,23 @@ Equip Snowfall, and take a moment in the snow.
 ------------------------------------------------------------------------
 FIELD: What's New in this Version (Max 4000 characters)
 ------------------------------------------------------------------------
-Version 1.1.0
+Version 1.2.0
 
 New in this release:
 
+• MANY MORE WATCHES: Snowfall now runs on every Connect IQ 4.0+ round watch — Forerunner (incl. 965 & 970), fenix 7/8, epix 2 / Pro, enduro 3, Venu 2/3, Vivoactive 5/6, Instinct 3 / E / Crossover, plus Approach, Descent, D2, and MARQ watches.
+• Correctly-sized fonts baked for every screen size, so the face stays crisp from 166px up to 454px panels.
+
+Thanks for wearing Snowfall!
+
+
+------------------------------------------------------------------------
+PREVIOUS: Version 1.1.0
+------------------------------------------------------------------------
 • CONFIGURABLE COMPLICATIONS: Choose what the bottom-left and bottom-right show — Heart Rate, Body Battery, Device Battery, Steps, Calories, or Off — each with a matching icon.
 • HEART RATE: Live BPM from the optical sensor, sampled at most once every ~10 seconds to spare the battery.
 • REAL SUNRISE/SUNSET: The sun, day/night, aurora, and sky now follow the true sunrise/sunset for your location and date.
 • Device Battery now shows a battery icon with a live fill bar.
-
-Thanks for wearing Snowfall!
 
 
 ------------------------------------------------------------------------
