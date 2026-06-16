@@ -4,6 +4,11 @@ All notable changes to Snowfall are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to
 follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-06-15
+
+### Added
+- **Festive Mode**: A single new app setting (on by default) adds holiday flair. Santa's sleigh and two reindeer — the lead one sporting Rudolph's glowing red nose — sweep across the upper sky on a timed flyover (once every ~2.5 minutes, trailing a little stardust). The snow-laden pine is strung with garlands of blinking multicolor lights and crowned with a twinkling, pulsing five-point star topper. At night a radiant **Star of Bethlehem** — a brilliant core with a glowing halo and long shimmering nativity-style rays — joins the starfield. Everything is gated behind one toggle, so it can be turned off for the pure alpine look. Festive elements only render in the active (non-burn-in) layer to stay within the always-on power budget.
+
 ## [1.2.0] - 2026-06-15
 
 ### Added

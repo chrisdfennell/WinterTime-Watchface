@@ -21,6 +21,7 @@ FEATURES & DETAILS
 • AURORA & STARS: Wavy green/cyan/violet aurora borealis ribbons drift above a field of stars through the long winter nights.
 • ARCING SUN & MOON: Day/night orbital progression of a pale winter sun (with faint rotating rays and a cold halo) and a silver crescent moon, driven by the REAL sunrise/sunset for your location and date — the sky, day/night, and aurora all follow the true sun times.
 • PROCEDURAL ANIMATIONS: Drifting clouds, rolling snow-drift layers, falling snow, and a swaying snow-laden pine silhouette.
+• FESTIVE MODE: Flip one switch to deck the halls — Santa's sleigh and reindeer (Rudolph's nose and all) sweep across the sky every couple of minutes, the pine tree lights up with a sparkling star topper and strings of blinking multicolor lights, and a radiant Star of Bethlehem shines in the night sky. Toggle it all off for the pure alpine look.
 • ROTATING SECONDS: A six-armed snowflake second indicator floating and orbiting the perimeter.
 • CONFIGURABLE COMPLICATIONS: Choose what the bottom-left and bottom-right complications show — Heart Rate (live BPM), Body Battery, Device Battery (with a live fill bar), Steps, Calories, or Off — each with a matching icon (heart, bolt, battery, boot, flame). Heart rate is sampled at most once every ~10 seconds to spare the battery. A frosted-ice steps progress bar with a numeric count sits in the center.
 • HIGH-CONTRAST OUTLINES: All texts (clock, date, weather, and battery metrics) feature a crisp black outline for absolute readability against the dynamic visual backdrops.
@@ -36,6 +37,7 @@ On AMOLED, the always-on display switches to a burn-in-safe variant — dim grey
 
 SETTINGS
 • Show Date — toggle the date line.
+• Festive Mode — toggle Santa's sleigh flyover and the sparkling lit Christmas tree.
 • Step Goal Override — steps for a full progress bar; 0 uses the watch's own step goal.
 • Bottom-Left Complication — Off / Heart Rate / Body Battery / Device Battery / Steps / Calories.
 • Bottom-Right Complication — same options.
@@ -52,14 +54,20 @@ Equip Snowfall, and take a moment in the snow.
 ------------------------------------------------------------------------
 FIELD: What's New in this Version (Max 4000 characters)
 ------------------------------------------------------------------------
-Version 1.2.0
+Version 1.3.0
 
 New in this release:
 
-• MANY MORE WATCHES: Snowfall now runs on every Connect IQ 4.0+ round watch — Forerunner (incl. 965 & 970), fenix 7/8, epix 2 / Pro, enduro 3, Venu 2/3, Vivoactive 5/6, Instinct 3 / E / Crossover, plus Approach, Descent, D2, and MARQ watches.
-• Correctly-sized fonts baked for every screen size, so the face stays crisp from 166px up to 454px panels.
+• FESTIVE MODE: A single new switch adds holiday magic — Santa's sleigh and reindeer fly across the sky every couple of minutes, the pine tree gets a sparkling star topper and strings of blinking multicolor lights, and a Star of Bethlehem shines at night. Turn it off any time for the classic alpine look.
 
 Thanks for wearing Snowfall!
+
+
+------------------------------------------------------------------------
+PREVIOUS: Version 1.2.0
+------------------------------------------------------------------------
+• MANY MORE WATCHES: Snowfall now runs on every Connect IQ 4.0+ round watch — Forerunner (incl. 965 & 970), fenix 7/8, epix 2 / Pro, enduro 3, Venu 2/3, Vivoactive 5/6, Instinct 3 / E / Crossover, plus Approach, Descent, D2, and MARQ watches.
+• Correctly-sized fonts baked for every screen size, so the face stays crisp from 166px up to 454px panels.
 
 
 ------------------------------------------------------------------------

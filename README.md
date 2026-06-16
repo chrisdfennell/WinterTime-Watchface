@@ -16,6 +16,7 @@ Snowfall brings a crisp, serene, and beautiful winter aesthetic to your watch:
 - **Drifting Snow Clouds & Rolling Drifts**: Soft clouds drift across the sky, and overlapping snow-drift layers roll gently at the bottom with real-time motion in active mode.
 - **Snow-laden Pine Silhouette**: A tiered evergreen with snow caps sways in the breeze at the snowbank.
 - **Falling Snow**: Gentle snowflakes drift down across the whole face in active mode.
+- **Festive Mode** *(one toggle, on by default)*: Holiday magic on demand. Santa's sleigh and two reindeer — the lead one with Rudolph's glowing red nose — sweep across the sky on a timed flyover every ~2.5 minutes, trailing stardust. The pine tree lights up with garlands of blinking multicolor lights and a twinkling, pulsing five-point star topper, and a radiant **Star of Bethlehem** joins the night sky. Switch it off for the pure alpine look.
 - **Snowflake Seconds**: A six-armed snowflake second indicator orbits the outer perimeter.
 - **Centered Digital Time**: Large, clean, rounded clock numerals (Arial Rounded MT Bold) centered with high-contrast black outlining.
 - **Centered Date & Weather**: An elegant date line (Segoe UI Light) showing the calendar date and dynamic weather temperature (with automatic Celsius/Fahrenheit unit conversion).
@@ -83,6 +84,7 @@ The face has two render paths sharing one `onUpdate()`:
 Editable in Garmin Connect / the simulator's App Settings:
 
 - **Show Date** — toggle the date and weather line.
+- **Festive Mode** — toggle the holiday extras: Santa's sleigh flyover, the lit/sparkling Christmas tree, and the Star of Bethlehem.
 - **Step Goal Override** — steps for a full progress bar; `0` uses the watch's own step goal.
 - **Bottom-Left Complication** — Off / Heart Rate / Body Battery / Device Battery / Steps / Calories.
 - **Bottom-Right Complication** — same options (each shows an emoji in the phone picker and a matching icon on the watch).

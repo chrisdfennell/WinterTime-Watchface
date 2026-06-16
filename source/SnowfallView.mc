@@ -58,6 +58,12 @@ class SnowfallView extends WatchUi.WatchFace {
     private var mStepGoalOverride as Number = 0;  // 0 => use device step goal
     private var mLeftComp as Number = COMP_HR;       // bottom-left complication
     private var mRightComp as Number = COMP_BATTERY; // bottom-right complication
+    private var mFestive as Boolean = true;          // Santa's sleigh + sparkling tree
+
+    // --- Festive timing: a sleigh flyover every SLEIGH_PERIOD seconds, lasting
+    //     SLEIGH_FLIGHT seconds as it crosses the sky left-to-right. ---
+    private const SLEIGH_PERIOD = 150;  // one flyover every 2.5 minutes
+    private const SLEIGH_FLIGHT = 9;    // seconds the sleigh is on screen
 
     // --- Heart-rate cache (sensor read throttled to once every ~10s) ---
     private var mCachedHr as Number or Null = null;
@@ -110,10 +116,12 @@ class SnowfallView extends WatchUi.WatchFace {
                 var stepGoal = Application.Properties.getValue("StepGoalOverride");
                 var leftComp = Application.Properties.getValue("LeftComplication");
                 var rightComp = Application.Properties.getValue("RightComplication");
+                var festive = Application.Properties.getValue("FestiveMode");
                 if (showDate != null) { mShowDate = showDate; }
                 if (stepGoal != null) { mStepGoalOverride = stepGoal; }
                 if (leftComp != null) { mLeftComp = leftComp; }
                 if (rightComp != null) { mRightComp = rightComp; }
+                if (festive != null) { mFestive = festive; }
             }
         } catch (e) {
             // keep defaults
@@ -239,6 +247,11 @@ class SnowfallView extends WatchUi.WatchFace {
                     var sy = (starY[i] * h / 454).toNumber();
                     dc.drawPoint(sx, sy);
                 }
+
+                // In Festive Mode, one star becomes the radiant Star of Bethlehem
+                if (mFestive) {
+                    drawBethlehemStar(dc, (w * 0.74).toNumber(), (h * 0.14).toNumber(), w, secVal);
+                }
             }
 
             // D. Draw Arcing Pale Sun / Silver Moon along the real day arc
@@ -326,9 +339,15 @@ class SnowfallView extends WatchUi.WatchFace {
             dc.setColor(0xF4FAFF, Graphics.COLOR_TRANSPARENT);
             dc.fillRectangle(0, bankY, w, h - bankY);
 
-            // H. Draw Snow-laden Pine, swaying in the wind
+            // H. Draw Snow-laden Pine, swaying in the wind (decked out in lights
+            //    and a sparkling star topper when Festive Mode is on)
             var pineSway = 0.06 * Math.sin(secVal.toFloat() * 0.15);
-            drawPineTree(dc, (w * 0.82).toNumber(), bankY, (h * 0.40).toNumber(), pineSway);
+            drawPineTree(dc, (w * 0.82).toNumber(), bankY, (h * 0.40).toNumber(), pineSway, secVal);
+
+            // H2. Santa's sleigh, sweeping across the sky once in a while
+            if (mFestive) {
+                drawSleighFlyover(dc, w, h, hour, min, secVal);
+            }
 
             // I. Draw Falling Snow
             drawSnow(dc, w, h, secVal, min);
@@ -468,7 +487,9 @@ class SnowfallView extends WatchUi.WatchFace {
     }
 
     // A snow-laden evergreen: tapered trunk + tiered triangles with snow on top.
-    private function drawPineTree(dc as Dc, baseX as Number, baseY as Number, height as Number, sway as Float) as Void {
+    // When Festive Mode is on it is strung with blinking lights and crowned with
+    // a twinkling star topper; `sec` drives the blink/twinkle animation.
+    private function drawPineTree(dc as Dc, baseX as Number, baseY as Number, height as Number, sway as Float, sec as Number) as Void {
         var trunkColor = 0x3A2A1A;
         var green = 0x16401F;     // dark winter pine silhouette
         var snow = 0xEAF6FF;
@@ -482,6 +503,8 @@ class SnowfallView extends WatchUi.WatchFace {
         var tiers = 3;
         var tierH = (height * 0.34).toNumber();
         var baseHalf = (height * 0.30).toNumber();
+        var topApexX = baseX;
+        var topApexY = baseY;
         for (var i = 0; i < tiers; i++) {
             // Lower (i=0) tier is widest; tiers overlap going up.
             var ty = baseY - trunkH - (i * (tierH * 0.62)).toNumber();
@@ -498,7 +521,241 @@ class SnowfallView extends WatchUi.WatchFace {
             var snowHalf = (halfW * 0.5).toNumber();
             dc.setColor(snow, Graphics.COLOR_TRANSPARENT);
             dc.fillPolygon([[baseX + leanX - snowHalf, snowTy], [baseX + leanX + snowHalf, snowTy], [baseX + leanX, apexY]] as Array<Array>);
+
+            // Festive string of lights draped along this tier's base edge
+            if (mFestive) {
+                drawTreeLights(dc, baseX - halfW, baseX + halfW, ty, i, height, sec);
+            }
+
+            // Remember the topmost apex for the star topper
+            if (i == tiers - 1) {
+                topApexX = baseX + leanX;
+                topApexY = apexY;
+            }
         }
+
+        // Sparkling star topper at the very top of the tree
+        if (mFestive) {
+            var starR = (height * 0.075).toNumber();
+            if (starR < 5) { starR = 5; }
+            drawStarTopper(dc, topApexX, topApexY - (starR / 2), starR, sec);
+        }
+    }
+
+    // A garland of small colored lights along a tier's base edge. Each light
+    // blinks on a staggered schedule so the whole string twinkles; lit bulbs
+    // get a warm glow + white sparkle, dark ones are dimmed to a faint ember.
+    private function drawTreeLights(dc as Dc, x1 as Number, x2 as Number, y as Number, tier as Number, height as Number, sec as Number) as Void {
+        var colors = [0xFF3B30, 0xFFD23F, 0x37C0FF, 0x44E06A, 0xFF7AD0] as Array<Number>;
+        var r = (height * 0.022).toNumber();
+        if (r < 2) { r = 2; }
+
+        var count = 4 + tier;          // wider lower tiers carry more lights
+        var span = (x2 - x1).toFloat();
+        for (var k = 0; k < count; k++) {
+            var fx = (x1 + span * (k + 1).toFloat() / (count + 1).toFloat()).toNumber();
+            // Slight downward sag toward the middle of the garland
+            var midFrac = ((k + 1).toFloat() / (count + 1).toFloat());
+            var sag = (r * 1.5 * Math.sin(midFrac * Math.PI)).toNumber();
+            var fy = y + sag;
+
+            var ci = (k + tier) % colors.size();
+            var color = colors[ci];
+
+            // Stagger blink so neighbours are rarely lit together
+            var lit = (((sec + k * 2 + tier * 3) % 5) < 3);
+            if (lit) {
+                dc.setColor(scaleColor(color, 0.30), Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(fx, fy, r + 2);            // soft glow
+                dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(fx, fy, r);
+                dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(fx, fy, (r > 2) ? (r - 2) : 1);   // hot white center
+            } else {
+                dc.setColor(scaleColor(color, 0.45), Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(fx, fy, (r > 1) ? r - 1 : 1);     // dim ember
+            }
+        }
+    }
+
+    // A five-pointed star topper that twinkles: the body pulses gently in size
+    // and a white sparkle cross flashes across it on a slow cadence.
+    private function drawStarTopper(dc as Dc, cxp as Number, cyp as Number, r as Number, sec as Number) as Void {
+        var pulse = 0.85 + 0.15 * Math.sin(sec.toFloat() * 0.9);
+        var rOuter = (r * pulse);
+        var rInner = rOuter * 0.42;
+
+        // Gold halo behind the star
+        dc.setColor(0x4A3A10, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cxp, cyp, (rOuter + 2).toNumber());
+
+        // Build the 10-point star polygon, first point straight up
+        var pts = new [10] as Array<Array>;
+        for (var i = 0; i < 10; i++) {
+            var rad = (i % 2 == 0) ? rOuter : rInner;
+            var ang = -Math.PI / 2.0 + i * (Math.PI / 5.0);
+            pts[i] = [(cxp + rad * Math.cos(ang)).toNumber(), (cyp + rad * Math.sin(ang)).toNumber()];
+        }
+        dc.setColor(0xFFD23F, Graphics.COLOR_TRANSPARENT);
+        dc.fillPolygon(pts);
+
+        // Bright core
+        dc.setColor(0xFFF6CC, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cxp, cyp, (rInner * 0.7).toNumber());
+
+        // Twinkle: a white sparkle cross that flares for part of each cycle
+        if ((sec % 4) < 2) {
+            dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(1);
+            var sp = (rOuter + r * 0.6).toNumber();
+            dc.drawLine(cxp - sp, cyp, cxp + sp, cyp);
+            dc.drawLine(cxp, cyp - sp, cxp, cyp + sp);
+        }
+    }
+
+    // The Star of Bethlehem: a brilliant white star with a glowing halo, four
+    // long shimmering rays (the lower one extended, nativity-style) and shorter
+    // diagonal sparkles. Gently pulses so it shines against the night sky.
+    private function drawBethlehemStar(dc as Dc, cxp as Number, cyp as Number, w as Number, sec as Number) as Void {
+        var pulse = 0.85 + 0.15 * Math.sin(sec.toFloat() * 0.8);
+        var ray = (w * 0.085 * pulse).toNumber();    // main ray length
+        var diag = (ray * 0.45).toNumber();          // diagonal sparkle length
+        var down = (ray * 1.6).toNumber();           // extended lower ray
+        if (ray < 8) { ray = 8; }
+
+        // Soft golden-white halo
+        dc.setColor(0x3A3A2A, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cxp, cyp, (w * 0.018).toNumber() + 2);
+
+        // Long shimmering rays (vertical extended down, horizontal, diagonals)
+        dc.setColor(0xFFF6CC, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawLine(cxp, cyp - ray, cxp, cyp + down);     // vertical w/ long tail
+        dc.drawLine(cxp - ray, cyp, cxp + ray, cyp);      // horizontal
+        dc.drawLine(cxp - diag, cyp - diag, cxp + diag, cyp + diag);
+        dc.drawLine(cxp + diag, cyp - diag, cxp - diag, cyp + diag);
+
+        // Bright core
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cxp, cyp, (w * 0.011).toNumber() + 1);
+        dc.setColor(0xFFF2B0, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cxp, cyp, (w * 0.005).toNumber() + 1);
+    }
+
+    // Santa's sleigh and reindeer sweep across the upper sky once every
+    // SLEIGH_PERIOD seconds, taking SLEIGH_FLIGHT seconds to cross left-to-right.
+    // Outside that window nothing is drawn, so it's a rare little treat.
+    private function drawSleighFlyover(dc as Dc, w as Number, h as Number, hour as Number, min as Number, sec as Number) as Void {
+        var secOfDay = hour * 3600 + min * 60 + sec;
+        var cyclePos = secOfDay % SLEIGH_PERIOD;
+        if (cyclePos >= SLEIGH_FLIGHT) { return; }
+
+        var p = cyclePos.toFloat() / SLEIGH_FLIGHT.toFloat();   // 0..1 across screen
+        var margin = (w * 0.30).toNumber();
+        var x = (-margin + p * (w + 2 * margin)).toNumber();    // lead reindeer X
+        // Gentle vertical bob along the flight path
+        var baseY = (h * 0.17).toNumber();
+        var y = baseY + (h * 0.03 * Math.sin(p * Math.PI * 3.0)).toNumber();
+
+        drawSleigh(dc, x, y, sec);
+    }
+
+    // Draws the full team (sleigh + two reindeer + reins + Santa) moving right,
+    // scaled to the screen. `x,y` is the lead reindeer's front-foot anchor.
+    private function drawSleigh(dc as Dc, x as Number, y as Number, sec as Number) as Void {
+        var s = mWidth / 280.0;
+        if (s < 0.7) { s = 0.7; }
+
+        var deerColor   = 0x5A3A1F;   // brown reindeer silhouette
+        var sleighColor = 0xD83A2A;   // festive red sleigh
+        var trimColor   = 0xFFD23F;   // gold trim / runner
+        var santaColor  = 0xE8392B;   // Santa's coat
+
+        var lead = x;
+        var rear = (x - 30 * s).toNumber();
+        var sleighX = (x - 64 * s).toNumber();
+
+        // Reins arcing from the sleigh up to the reindeer
+        dc.setColor(0x2A1A0E, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth((s > 1.0) ? 2 : 1);
+        dc.drawLine(sleighX + (10 * s).toNumber(), (y - 10 * s).toNumber(), rear - (8 * s).toNumber(), (y - 8 * s).toNumber());
+        dc.drawLine(rear - (8 * s).toNumber(), (y - 8 * s).toNumber(), lead - (8 * s).toNumber(), (y - 8 * s).toNumber());
+
+        drawReindeer(dc, rear, y, s, deerColor, false);
+        drawReindeer(dc, lead, y, s, deerColor, true);   // lead = Rudolph (red nose)
+        drawSleighBody(dc, sleighX, y, s, sleighColor, trimColor, santaColor);
+
+        // Trailing stardust behind the sleigh, twinkling with the seconds
+        var sparkleColors = [0xFFD23F, 0xFFFFFF, 0xCFEFFF] as Array<Number>;
+        for (var i = 0; i < 4; i++) {
+            if (((sec + i) % 2) == 0) { continue; }
+            var tx = (sleighX - (14 + i * 11) * s).toNumber();
+            var ty = (y + ((i % 2 == 0) ? -4 : 6) * s).toNumber();
+            dc.setColor(sparkleColors[i % sparkleColors.size()], Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(tx, ty, (s > 1.0) ? 2 : 1);
+        }
+    }
+
+    // One reindeer facing right, anchored at its front foot (rx, ry).
+    private function drawReindeer(dc as Dc, rx as Number, ry as Number, s as Float, color as Number, lead as Boolean) as Void {
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth((s > 1.0) ? 2 : 1);
+
+        // Legs
+        dc.drawLine(rx - (10 * s).toNumber(), ry, rx - (10 * s).toNumber(), (ry + 6 * s).toNumber());
+        dc.drawLine(rx - (2 * s).toNumber(),  ry, rx - (2 * s).toNumber(),  (ry + 6 * s).toNumber());
+
+        // Body + neck
+        dc.fillRoundedRectangle(rx - (12 * s).toNumber(), (ry - 6 * s).toNumber(), (13 * s).toNumber(), (7 * s).toNumber(), (2 * s).toNumber());
+        dc.fillPolygon([
+            [rx - (2 * s).toNumber(),  (ry - 4 * s).toNumber()],
+            [rx + (4 * s).toNumber(),  (ry - 13 * s).toNumber()],
+            [rx + (7 * s).toNumber(),  (ry - 12 * s).toNumber()],
+            [rx + (3 * s).toNumber(),  (ry - 3 * s).toNumber()]
+        ] as Array<Array>);
+
+        // Head
+        dc.fillCircle((rx + 6 * s).toNumber(), (ry - 13 * s).toNumber(), (3 * s).toNumber());
+
+        // Antlers
+        var hx = (rx + 6 * s).toNumber();
+        var hy = (ry - 15 * s).toNumber();
+        dc.drawLine(hx, hy, (hx - 3 * s).toNumber(), (hy - 5 * s).toNumber());
+        dc.drawLine(hx, hy, (hx + 3 * s).toNumber(), (hy - 5 * s).toNumber());
+        dc.drawLine((hx + 3 * s).toNumber(), (hy - 5 * s).toNumber(), (hx + 6 * s).toNumber(), (hy - 4 * s).toNumber());
+
+        // Rudolph's glowing red nose on the lead reindeer
+        if (lead) {
+            dc.setColor(0xFF2A2A, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle((rx + 9 * s).toNumber(), (ry - 13 * s).toNumber(), (s > 1.0) ? 2 : 1);
+        }
+    }
+
+    // The sleigh itself, anchored at its mid-base (px, py), with Santa aboard.
+    private function drawSleighBody(dc as Dc, px as Number, py as Number, s as Float, body as Number, trim as Number, santa as Number) as Void {
+        // Sleigh body: a seat that curls up at the back (left)
+        dc.setColor(body, Graphics.COLOR_TRANSPARENT);
+        dc.fillPolygon([
+            [px - (16 * s).toNumber(), (py - 2 * s).toNumber()],
+            [px - (16 * s).toNumber(), (py - 14 * s).toNumber()],
+            [px - (10 * s).toNumber(), (py - 8 * s).toNumber()],
+            [px + (10 * s).toNumber(), (py - 8 * s).toNumber()],
+            [px + (10 * s).toNumber(), (py - 2 * s).toNumber()]
+        ] as Array<Array>);
+
+        // Santa, seated
+        dc.setColor(santa, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(px - (8 * s).toNumber(), (py - 16 * s).toNumber(), (10 * s).toNumber(), (9 * s).toNumber(), (2 * s).toNumber());
+        dc.setColor(0xFFE0C0, Graphics.COLOR_TRANSPARENT);   // face
+        dc.fillCircle((px - 2 * s).toNumber(), (py - 18 * s).toNumber(), (2 * s).toNumber());
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);   // hat bobble / beard
+        dc.fillCircle((px + 1 * s).toNumber(), (py - 21 * s).toNumber(), (s > 1.0) ? 2 : 1);
+
+        // Gold runner with a curled front
+        dc.setColor(trim, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth((s > 1.0) ? 2 : 1);
+        dc.drawLine(px - (16 * s).toNumber(), (py - 1 * s).toNumber(), px + (12 * s).toNumber(), (py - 1 * s).toNumber());
+        dc.drawLine(px + (12 * s).toNumber(), (py - 1 * s).toNumber(), px + (15 * s).toNumber(), (py - 5 * s).toNumber());
     }
 
     // Falling snow particles, drifting down and swaying with a gentle breeze.

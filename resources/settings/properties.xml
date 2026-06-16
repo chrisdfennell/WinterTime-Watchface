@@ -2,6 +2,10 @@
     <!-- Show the date line under the time -->
     <property id="ShowDate" type="boolean">true</property>
 
+    <!-- Festive mode: Santa's sleigh flies by now and then, and the pine tree
+         gets a sparkling star topper + blinking lights. -->
+    <property id="FestiveMode" type="boolean">true</property>
+
     <!-- Steps that equal a full progress bar. 0 = use ActivityMonitor's own step goal. -->
     <property id="StepGoalOverride" type="number">0</property>
 
