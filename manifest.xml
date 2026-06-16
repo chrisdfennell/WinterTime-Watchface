@@ -12,6 +12,9 @@
         face still installs on those watches; everything is laid out relative to the
         screen size so it scales cleanly.
 
+        The Forerunner 965 and 970 share the same 454x454 AMOLED panel as the
+        47/51mm Fenix 8, so they use the base 454 resource set with no override.
+
         minApiLevel 4.0.0 guarantees vector fonts (3.4+) and the Body Battery
         SensorHistory API (4.0+). All optional features are still guarded with
         `has` checks at runtime so nothing crashes on a device that lacks them.
@@ -24,6 +27,7 @@
             <iq:product id="fenix8solar51mm"/>
             <iq:product id="fenix8solar47mm"/>
             <iq:product id="fr965"/>
+            <iq:product id="fr970"/>
         </iq:products>
         <iq:permissions>
             <iq:uses-permission id="SensorHistory"/>

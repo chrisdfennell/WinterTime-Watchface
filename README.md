@@ -34,6 +34,8 @@ The project targets the Fenix 8 and tactix 8 platforms. Connect IQ has no dedica
 | `fenix843mm`    | 416×416    | tactix 8 47mm   | AMOLED     |
 | `fenix8pro47mm` | 454×454    | Fenix 8 Pro     | AMOLED     |
 | `fenix8solar51mm` / `fenix8solar47mm` | 280/260 | Fenix 8 Solar | MIP (Solar) |
+| `fr965`         | 454×454    | Forerunner 965  | AMOLED     |
+| `fr970`         | 454×454    | Forerunner 970  | AMOLED     |
 
 Everything is laid out in percentages of `dc.getWidth()/getHeight()` and the screen center, so it scales cleanly across all of these resolutions.
 
