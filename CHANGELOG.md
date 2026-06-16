@@ -4,6 +4,11 @@ All notable changes to Snowfall are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to
 follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-06-16
+
+### Changed
+- **Festive Mode now defaults to off.** The holiday extras (Santa's sleigh flyover, the lit/sparkling pine, and the night-time Star of Bethlehem) no longer appear out of the box — the watch shows the pure alpine look until you turn on the **Festive Mode** switch yourself. The `FestiveMode` property default and the in-code fallback are both `false`. Winter Critters remains on by default.
+
 ## [1.4.0] - 2026-06-16
 
 ### Added

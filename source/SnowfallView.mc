@@ -102,7 +102,7 @@ class SnowfallView extends WatchUi.WatchFace {
     private var mStepGoalOverride as Number = 0;  // 0 => use device step goal
     private var mLeftComp as Number = COMP_HR;       // bottom-left complication
     private var mRightComp as Number = COMP_BATTERY; // bottom-right complication
-    private var mFestive as Boolean = true;          // Santa's sleigh + sparkling tree
+    private var mFestive as Boolean = false;         // Santa's sleigh + sparkling tree (opt-in)
     private var mShowCritters as Boolean = true;     // occasional winter visitors
 
     // --- Critter type ids (day + night pools, indexed by a clock hash) ---

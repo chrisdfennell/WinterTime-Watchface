@@ -14,27 +14,26 @@ Snowfall — Winter Alpine Watch Face
 ------------------------------------------------------------------------
 FIELD: Description (Max 4000 characters)
 ------------------------------------------------------------------------
-Snowfall is a premium, high-fidelity digital watch face featuring a crisp, serene winter alpine aesthetic. Experience a living winter sky, aurora ribbons over a starfield, drifting clouds, rolling snow drifts, falling snow, and a snow-laden pine silhouette, all procedurally rendered. Large, outlined digital time and clean complications keep you connected and styled for winter.
+Snowfall is a premium digital watch face with a crisp, serene winter alpine aesthetic — a living winter sky, aurora over a starfield, drifting clouds, falling snow, and a snow-laden pine, all procedurally rendered. Large outlined time and clean complications keep you connected all winter.
 
 FEATURES & DETAILS
-• LIVING WINTER SKY: A procedural backdrop that shifts colors dynamically by time of day (deep indigo night, cold rose dawn, pale midday blue, cold-peach sunset, and twilight purple).
-• AURORA & STARS: Wavy green/cyan/violet aurora borealis ribbons drift above a field of stars through the long winter nights.
-• ARCING SUN & MOON: Day/night orbital progression of a pale winter sun (with faint rotating rays and a cold halo) and a silver crescent moon, driven by the REAL sunrise/sunset for your location and date — the sky, day/night, and aurora all follow the true sun times.
+• LIVING WINTER SKY: A procedural backdrop that shifts color by time of day — deep indigo night, cold rose dawn, pale midday blue, cold-peach sunset, twilight purple.
+• AURORA & STARS: Wavy green/cyan/violet aurora ribbons drift above a field of stars through the long winter nights.
+• ARCING SUN & MOON: A pale winter sun and silver crescent moon arc across day and night, driven by the REAL sunrise/sunset for your location and date — sky, day/night, and aurora all follow the true sun times.
 • PROCEDURAL ANIMATIONS: Drifting clouds, rolling snow-drift layers, falling snow, and a swaying snow-laden pine silhouette.
-• FESTIVE MODE: Flip one switch to deck the halls — Santa's sleigh and reindeer (Rudolph's nose and all) sweep across the sky every couple of minutes, the pine tree lights up with a sparkling star topper and strings of blinking multicolor lights, and a radiant Star of Bethlehem shines in the night sky. Toggle it all off for the pure alpine look.
-• WINTER CRITTERS: Occasional little visitors cross the scene — at most one at a time, every ~40 seconds. By day a red cardinal flies the sky, a snowshoe hare bounds across the snow, a red fox trots and snow-pounces, and a chickadee glides in to peck before flitting off. By night a snowy owl glides overhead, an arctic fox slips past, a grey wolf pauses to howl, and an antlered stag walks by with its breath steaming. A single switch turns them on or off.
-• ROTATING SECONDS: A six-armed snowflake second indicator floating and orbiting the perimeter.
-• CONFIGURABLE COMPLICATIONS: Choose what the bottom-left and bottom-right complications show — Heart Rate (live BPM), Body Battery, Device Battery (with a live fill bar), Steps, Calories, or Off — each with a matching icon (heart, bolt, battery, boot, flame). Heart rate is sampled at most once every ~10 seconds to spare the battery. A frosted-ice steps progress bar with a numeric count sits in the center.
-• HIGH-CONTRAST OUTLINES: All texts (clock, date, weather, and battery metrics) feature a crisp black outline for absolute readability against the dynamic visual backdrops.
+• FESTIVE MODE: Flip one switch to deck the halls — Santa's sleigh and reindeer (Rudolph and all) sweep the sky every couple of minutes, the pine lights up with a sparkling star topper and blinking multicolor strings, and a Star of Bethlehem shines at night. Toggle off for the pure alpine look.
+• WINTER CRITTERS: Occasional visitors cross the scene — one at a time, every ~40 seconds. By day: a red cardinal, a snowshoe hare, a snow-pouncing red fox, a pecking chickadee. By night: a snowy owl, an arctic fox, a howling grey wolf, and a steaming-breath stag. One switch turns them on or off.
+• ROTATING SECONDS: A six-armed snowflake second indicator orbiting the perimeter.
+• CONFIGURABLE COMPLICATIONS: Set the bottom-left and bottom-right to Heart Rate (live BPM), Body Battery, Device Battery (live fill bar), Steps, Calories, or Off, each with a matching icon. Heart rate samples at most once every ~10 seconds to spare the battery. A frosted-ice steps progress bar with a numeric count sits in the center.
+• HIGH-CONTRAST OUTLINES: All texts carry a crisp black outline for readability against the dynamic backdrops.
 
 BUILT FOR YOUR DISPLAY
-Snowfall adapts to your panel:
-• AMOLED (Fenix 8 / tactix 8 / Fenix 8 Pro, Forerunner 965/970, Venu, epix, Instinct 3 AMOLED, and more): smooth gradient resource fills, specular highlights, and active background illumination.
-• MIP / Solar (Fenix 7, Fenix 8 Solar, Forerunner 255/955, Instinct, and more): high-contrast flat fills and optimized backdrops tuned for maximum sunlight readability.
-Everything is laid out relative to your screen, with correctly-sized fonts baked for every resolution, so it looks right on every supported case size — from 166px Instinct panels up to 454px flagships.
+• AMOLED (Fenix 8, Forerunner 965/970, Venu, epix, Instinct 3 AMOLED, and more): smooth gradient fills, specular highlights, and active background illumination.
+• MIP / Solar (Fenix 7, Fenix 8 Solar, Forerunner 255/955, Instinct, and more): high-contrast flat fills tuned for sunlight readability.
+Fonts are baked for every resolution, so it looks right from 166px Instinct panels up to 454px flagships.
 
 ALWAYS-ON FRIENDLY
-On AMOLED, the always-on display switches to a burn-in-safe variant — dim grey time/date, thin outline representations of the battery metrics, steps progress outline, and no visual fills or background animations. All lit pixels are shifted a few pixels each minute. MIP panels always show the full face.
+On AMOLED, the always-on display switches to a burn-in-safe variant — dim grey time/date, thin outline battery metrics and steps progress, no fills or animation, and lit pixels shifted each minute. MIP panels always show the full face.
 
 SETTINGS
 • Show Date — toggle the date line.
@@ -45,10 +44,10 @@ SETTINGS
 • Bottom-Right Complication — same options.
 
 PRIVACY
-Snowfall uses only the SensorHistory permission (to read Body Battery). It reads heart rate and last-known location on-device to show your BPM and compute local sunrise/sunset; it does not collect or transmit any data off your watch.
+Snowfall uses only the SensorHistory permission (to read Body Battery). Heart rate and last-known location are read on-device to show your BPM and compute local sunrise/sunset; no data is collected or transmitted off your watch.
 
 SUPPORTED DEVICES
-Every Connect IQ 4.0+ round watch, including: Forerunner 165, 255/255S, 265/265S, 570, 955, 965, 970; fenix 7 / 7S / 7X (incl. Pro), fenix 8 (AMOLED & Solar), fenix E; epix 2 / epix Pro (42/47/51mm); enduro 3; Venu 2 / 2S / 2 Plus, Venu 3 / 3S, Venu 4; Vivoactive 5 / 6; Instinct 3 (AMOLED & Solar), Instinct E, Instinct Crossover; Approach S50 / S70; Descent G2 / Mk3; D2 Air X10 / Mach 1 / Mach 2; MARQ 2 / Aviator. (Square/rectangular Venu Sq 2 and Venu X1 are not supported — the circular layout is built for round screens.)
+Every Connect IQ 4.0+ round watch, including: Forerunner 165, 255/255S, 265/265S, 570, 955, 965, 970; fenix 7 / 7S / 7X (incl. Pro), fenix 8 (AMOLED & Solar), fenix E; epix 2 / epix Pro (42/47/51mm); enduro 3; Venu 2 / 2S / 2 Plus, Venu 3 / 3S, Venu 4; Vivoactive 5 / 6; Instinct 3 (AMOLED & Solar), Instinct E, Instinct Crossover; Approach S50 / S70; Descent G2 / Mk3; D2 Air X10 / Mach 1 / Mach 2; MARQ 2 / Aviator. (Square Venu Sq 2 and Venu X1 are not supported.)
 
 Equip Snowfall, and take a moment in the snow.
 
@@ -56,14 +55,20 @@ Equip Snowfall, and take a moment in the snow.
 ------------------------------------------------------------------------
 FIELD: What's New in this Version (Max 4000 characters)
 ------------------------------------------------------------------------
-Version 1.4.0
+Version 1.4.1
 
 New in this release:
 
-• WINTER CRITTERS: A new switch adds occasional little visitors that cross the scene — one at a time, every ~40 seconds. By day: a red cardinal, snowshoe hare, snow-pouncing red fox, and a chickadee that lands to peck. By night: a snowy owl, arctic fox, a grey wolf that pauses to howl, and an antlered stag with steaming breath. Turn them off any time.
-• SMOOTHER & MORE STABLE: A pass of performance work keeps the scene animating without tripping the watch's frame budget — adaptive render quality that auto-fits each device, a clipped always-on update, a cached/buffered sky gradient, and loop-safe sun math. No more freezes while you're looking at it.
+• FESTIVE MODE IS NOW OPT-IN: The holiday extras — Santa's sleigh flyover, the lit sparkling tree, and the Star of Bethlehem — no longer appear by default. You get the pure alpine look out of the box; flip the Festive Mode switch on any time you want the holiday magic. Winter Critters stays on by default.
 
 Thanks for wearing Snowfall!
+
+
+------------------------------------------------------------------------
+PREVIOUS: Version 1.4.0
+------------------------------------------------------------------------
+• WINTER CRITTERS: A new switch adds occasional little visitors that cross the scene — one at a time, every ~40 seconds. By day: a red cardinal, snowshoe hare, snow-pouncing red fox, and a chickadee that lands to peck. By night: a snowy owl, arctic fox, a grey wolf that pauses to howl, and an antlered stag with steaming breath. Turn them off any time.
+• SMOOTHER & MORE STABLE: A pass of performance work keeps the scene animating without tripping the watch's frame budget — adaptive render quality that auto-fits each device, a clipped always-on update, a cached/buffered sky gradient, and loop-safe sun math. No more freezes while you're looking at it.
 
 
 ------------------------------------------------------------------------

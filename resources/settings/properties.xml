@@ -4,7 +4,7 @@
 
     <!-- Festive mode: Santa's sleigh flies by now and then, and the pine tree
          gets a sparkling star topper + blinking lights. -->
-    <property id="FestiveMode" type="boolean">true</property>
+    <property id="FestiveMode" type="boolean">false</property>
 
     <!-- Winter critters: occasional visitors (fox, hare, cardinal, owl, wolf,
          stag, chickadee) cross the scene now and then. -->
